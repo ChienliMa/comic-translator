@@ -6,8 +6,13 @@ const testimg = require("./testimg.jpeg");
 const testtag = require("./logo.svg");
 var min = (a, b) => {return a < b ? a : b;};
 var max = (a, b) => {return a > b ? a : b;};
+
+
 const VERTICALLY = 'vertivally';
 const HORIZENTALLY = 'horizentally';
+
+const DRAG_TO_COVER = "DRAG_TO_COVER";
+const DRAG_TEXT = "DRAG_TEXT";
 
 function distance (a, b) {
     var sum = 0;
@@ -28,125 +33,79 @@ class Project {
 class Page {
     constructor (){
         this.image = null;
-        this.bubbles = [];
-        this.page = null;
-    }
-}
-//
-// ImageData.prototype.get = function (x, y) {
-//     if (0 <= x < this.width && 0 <= y < this.height){
-//         var pos = x * this.width + y;
-//         return this.data.slice(pos, pos+4);
-//     }
-//     return [0, 0, 0, 0];
-// }
-//
-// ImageData.prototype.set = function (x, y, color) {
-//     if (0 <= x < this.width && 0 <= y < this.height) {
-//         for (var i = 0; i < 4; i++) {
-//             this.data[x * this.width + y + i] = color[i];
-//         }
-//         return true;
-//     }
-//     return false;
-// }
-//
-// ImageData.prototype.drawLine = function(x1, y1, x2, y2, color){
-//     // 1. judge k
-//     // 2.vertical
-//     // 3. horizental
-//     // normally
-// }
-//
-// ImageData.prototype.getImageData = function (x, y, width, height) {
-//
-// }
-
-// add a update function to decrease refresh rate
-class Bubble {
-    constructor (boarder, base_color) {
-        this.ctx = document.getElementById("BaseCanvas").getContext("2d");
-
-        var [x, y, x1, y1] = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, -1, -1];
-        for (var bx in boarder) {
-            x = Math.min(bx, x);
-            y = Math.min(y, boarder[bx].top);
-            x1 = Math.max(bx, x1);
-            y1 = Math.max(y1, boarder[bx].buttom);
-        }
-
-        this.x = x;
-        this.y = y;
-        this.width = x1 - x;
-        this.height = y1 - y;
-        this.boarder = boarder;
-        this.ori_data = this.ctx.getImageData(this.x, this.y, this.width, this.height);
-        this.base_color = "rgba(" +base_color[0] +","
-                                    + base_color[1] +","
-                                    + 122 +","
-                                    + base_color[3] +")";
-
-        this.direction = VERTICALLY;
-
+        this.rects = []; // rects that cover original texts
         this.texts = [];
-        this.fontSize = 48; // unit: px
-        this.fontStyle = "serif";
-    }
-
-
-    showOrigin() {
-        this.ctx.putImageData(this.ori_data, this.x, this.y);
-    }
-
-    hideOrigin() {
-        this.refresh();
-    }
-
-    render() {
-        this.refresh();
-    }
-
-    refresh () {
-        // recover original text
-        this.ctx.fillStyle = this.base_color;
-        for (var x in this.boarder) {
-            x = parseInt(x);
-            var height = this.boarder[x].buttom - this.boarder[x].top;
-            this.ctx.fillRect(x, this.boarder[x].top, 1, height);
-        }
-
-        // render text
-        if (this.texts.length > 1) {
-            this.ctx.font = this.fontSize + "px " + this.fontStyle;
-            for(var text of this.texts) {
-                this.ctx.fillText(text.text, this.x + text.x, this.y + text.y);
-            }
-        }
+        this.page = null;
     }
 }
 
 class Text {
-    constructor (bubble) {
-        this.x = 0; // relative location to bubble
-        this.y = 0;
+    constructor (pos) {
+        this.pos = pos;
         this.text = "";
+        this.width = 0;
+        this.height = 0;
+
+        // for dragging
+        this.anchor = null;
+        this,oriPos = null;
+
+        this.fontSize = 15;
+        this.fontStyle = "serif";
+        this.lineGap = 3;
+    }
+
+    mouseWithin (pos) {
+        return (this.x <= pos[0] <= this.x + this.width) &
+                (this.y <= pos[1] <= this.y + this.height);
+    }
+
+    setAnchor (pos) {
+        this.anchor = pos;
+        this.oriPos = this.pos.copy();
+    }
+
+    clearAnchor () {
+        this.anchor = null;
+        this.oriPos = this.pos;
+    }
+
+    anchorMoveTo (pos) {
+        this.pos[0] = this.oriPos[0] + pos[0] - this.anchor[0];
+        this.pos[1] = this.oriPos[1] + pos[1] - this.anchor[1];
+    }
+
+    getFont () {
+        return this.fontSize + "px " + this.fontStyle;
+    }
+
+    renderOnContext (ctx) {
+        ctx.font = this.getFont();
+        this.width = 0;
+        this.height = 0;
+
+        var count = 0;
+        for (var text of this.text.split("\n")) {
+            this.width = Math.max(this.width, ctx.measureText(text).width);
+            this.height = this.height + this.lineGap + this.fontSize;
+            ctx.fillText(text, this.x, this.y + count * (this.lineGap + this.fontSize));
+            count = count + 1;
+        }
+
     }
 }
 
-class Color {
-    constructor(data) {
-        this.r = data[0];
-        this.g = data[1];
-        this.b = data[2];
-        this.a = data[3];
+class Rect {
+    constructor (pos1, pos2) {
+        this.pos1 = pos1;
+        this.pos2 = pos2;
     }
 
-    toImageData() {
-        return {
-            data : [this.r, this.g, this.b, this.a],
-            width : 1,
-            height : 1,
-        }
+    renderOnContext(ctx) {
+        var [x,y] = this.pos1;
+        var [x1, y1] = this.pos2;
+        ctx.fillStyle = "white";
+        ctx.fillRect(x, y, x1 - x, y1 - y);
     }
 }
 
@@ -179,9 +138,8 @@ class App extends Component {
       <div className="App">
           <div style={{display: "flex", width: "100%", height: "100%", position: "absolute"}}>
               <GalleryComponent project={this.state}></GalleryComponent>
-
-              <div id="CanvasContainer" style={{display:"flex", width: "80%", backgroundColor:"#FF0000", flexGrow: 3, overflow:"scroll"}}>
-                    <CanvasComponent  project={this.state}></CanvasComponent>
+              <div id="EditorContainer" style={{display:"flex", width: "80%", backgroundColor:"#FF0000", flexGrow: 3, overflow:"scroll"}}>
+                  <InteractiveEditor project={this.state}></InteractiveEditor>
               </div>
           </div>
       </div>
@@ -189,7 +147,7 @@ class App extends Component {
   }
 }
 
-class CanvasComponent extends Component {
+class InteractiveEditor extends Component {
     constructor(props) {
         super(props);
 
@@ -204,140 +162,152 @@ class CanvasComponent extends Component {
         page.canvas_w = 400;
         page.canvas_h = 400;
 
+        this.drag = {};
+        this.drag.state = "";
+        this.drag.item = null;
+        this.drag.startPos = null;
+
         this.state = page;
     }
 
-    setCanvasSize () {
-        var div = document.getElementById("CanvasContainer");
+    setCanvasSize() {
+        var div = document.getElementById("EditorContainer");
 
         this.state.canvas_w = min(this.state.image.width, div.clientWidth);
-        this.state.canvas_h = this.state.canvas_w*this.state.ratio;
+        this.state.canvas_h = this.state.canvas_w * this.state.ratio;
     }
 
 
-    updateCanvas () {
+    updateCanvas() {
         this.setCanvasSize();
-        var canvas = document.getElementById("BaseCanvas");
-        var ctx = canvas.getContext("2d");
+        var baseCanvas = document.getElementById("BaseCanvas");
+        baseCanvas.height = this.state.canvas_h;
+        baseCanvas.width = this.state.canvas_w;
+        var ctx = baseCanvas.getContext("2d");
 
-        canvas.height = this.state.canvas_h;
-        canvas.width = this.state.canvas_w;
         ctx.drawImage(this.state.image, 0, 0, this.state.canvas_w, this.state.canvas_h);
+
+
+        var coverCanvas = document.getElementById("CoverCanvas");
+        coverCanvas.height = this.state.canvas_h;
+        coverCanvas.width = this.state.canvas_w;
+        var textCanvas = document.getElementById("TextCanvas");
+        textCanvas.height = this.state.canvas_h;
+        textCanvas.width = this.state.canvas_w;
     }
 
-    componentDidMount ()  {
+    componentDidMount() {
         this.state.project.proxy.subscribe("SelectImg", this.updateImage.bind(this));
 
         if (this.state.image.complete) {
             this.updateCanvas();
         } else {
-            this.state.image.onload = ()=>this.updateCanvas();
+            this.state.image.onload = () => this.updateCanvas();
         }
     }
 
-    updateImage (src) {
-        var state  = this.state;
+    updateImage(src) {
+        var state = this.state;
         var image = new Image();
-        image.src= src;
+        image.src = src;
         image.crossOrigin = "Anonymous";
         state.image = image;
-        state.ratio = image.height/image.width;
+        state.ratio = image.height / image.width;
         this.setState(state);
         this.updateCanvas();
-    }
-
-    canvasOnClick (event) {
-        var canvas = document.getElementById("BaseCanvas");
-        var ctx = canvas.getContext('2d');
-        var pos = this.getMouseRelativePosition(canvas, event);
-
-        this.discoverBubble(pos);
-    }
-
-    discoverBubble (pos) {
-        var seen = [];
-        var unseen = [];
-        var boarder  = {};// definition of boarder
-        var canvas = document.getElementById("BaseCanvas");
-        var ctx = canvas.getContext('2d');
-        var ori_color = ctx.getImageData(pos[0], pos[1], 1, 1).data;
-
-        unseen.push(pos);
-        while (unseen.length >= 1) {
-            var this_pos = unseen.pop(0);
-            seen.push(this_pos.toString());
-            var [x, y] = this_pos;
-
-            var this_color = ctx.getImageData(x, y, 1, 1).data;
-            if (distance(this_color, ori_color) < 3) {
-                if (boarder[x] == null) {
-                    boarder[x] = {top: y, buttom: y};
-                } else {
-                    if (boarder[x].top > y) boarder[x].top = y;
-                    if (boarder[x].buttom < y) boarder[x].buttom = y;
-                }
-
-                if(!seen.includes([x-1, y].toString())) {
-                    unseen.push([x-1, y]);
-                }
-                if(!seen.includes([x+1, y].toString())) {
-                    unseen.push([x+1, y]);
-                }
-                if(!seen.includes([x, y-1].toString())) {
-                    unseen.push([x, y-1]);
-                }
-                if(!seen.includes([x, y+1].toString())){
-                    unseen.push([x, y+1]);
-                }
-            }
-
-        }
-
-        var newBubble = new Bubble(boarder, ori_color);
-        newBubble.render();
-
-
-        var state = this.state;
-        state.bubbles.push(newBubble);
-        this.setState(state);
     }
 
     getMouseRelativePosition(canvas, event) {
         return [event.pageX - canvas.offsetLeft, event.pageY];
     }
 
+    onClick(event) {
+        var canvas = document.getElementById("TextCanvas");
+        var ctx = canvas.getContext('2d');
+    }
 
-    renderBubbles() {
-        return this.state.bubbles.map(
-            (bubble) => {return <BubbleComponent key={bubble.x+','+bubble.y} x={bubble.x+bubble.width} y={bubble.y}></BubbleComponent>}
-        )
+    rectDragStart (pos) {
+        var newRect = new Rect(pos, pos.copy());
+        this.state.rects.push(newRect);
+        this.drag.state = DRAG_TO_COVER;
+        this.drag.item = newRect;
+    }
+
+    textDragStart (text, pos) {
+        this.drag.state = DRAG_TEXT;
+        this.drag.item = text;
+        text.setAnchor(pos);
+    }
+
+    onDragStart(event) {
+        var canvas = document.getElementById("TextCanvas");
+        var pos = this.getMouseRelativePosition(canvas, event);
+        if (event.shift) {  //drag to draw rect
+            this.rectDragStart(pos);
+        } else if (event.alt) {  //drag text
+            for (var text of this.state.texts) {
+                if (text.mouseWithin(pos)) {
+                    this.textDragStart(text, pos);
+                    break;
+                }
+            }
+        }
+    }
+
+    rectDragUpdate (pos) {
+        this.drag.item.pos2 = pos;
+        this.refreshRectCanvas();
+    }
+
+    rectDragUpdate (pos) {
+        this.drag.item.anchorMoveTo(pos);
+        this.refreshTextCanvas();
+    }
+
+    onDrag (event) {
+        var canvas = document.getElementById("TextCanvas");
+        var pos = this.getMouseRelativePosition(canvas, event);
+        switch (this.state.drag.state){
+            case DRAG_TO_COVER:
+                this.rectDragUpdate(pos);
+                break;
+            case DRAG_TEXT:
+                this.textDragUpdate(pos);
+                break;
+            default:
+        }
+    }
+
+    onDragEnd (event) {
+        if (this.drag.state == DRAG_TEXT) this.drag.item.clearAnchor();
+        this.drag = {};
+    }
+
+    refreshRectCanvas() {
+        var canvas = document.getElementById("RectCanvas");
+        var ctx = canvas.getContext("2d");
+        ctx.clear();
+        this.state.rects.map((x) => {x.renderOnContext(ctx);});
+    }
+
+    refreshTextCanvas() {
+        var canvas = document.getElementById("TextCanvas");
+        var ctx = canvas.getContext("2d");
+        ctx.clear();
+        this.state.texts.map((x) => {x.renderOnContext(ctx);});
     }
 
     render() {
-        return(
-            <div style={{overflow: "auto", width: "100%"}}>
-                <div style={{}}>
-                    <canvas id="BaseCanvas" onClick={this.canvasOnClick.bind(this)} style={{maxWidth: "100%"}} ></canvas>
-                    {this.renderBubbles()}
-                </div>
-
+        return (
+            <div style={{position: "relative", overflow: "auto", width: "100%"}}>
+                <canvas id="BaseCanvas" style={{maxWidth: "100%", position: "absolute", zIndex: 1}}></canvas>
+                <canvas id="CoverCanvas" style={{maxWidth: "100%", position: "absolute", zIndex: 2}}></canvas>
+                <canvas id="TextCanvas" draggable="true" style={{maxWidth: "100%", position: "absolute", zIndex: 3}}
+                        onDragEnd={this.onDragEnd} onDrag={this.onDrag} onDragStart={this.onDrag}
+                        onClick={this.onClick}></canvas>
             </div>
         )
     }
-}
-
-class BubbleComponent extends Component {
-    constructor (props) {
-        super(props);
-        this.state = props
-    }
-
-    render () {
-        return (
-                <img style={{left:this.state.x+"px", top:this.state.y+"px", zIndex:999}} src={"https://www.gravatar.com/avatar/a007be5a61f6aa8f3e85ae2fc18dd66e?s=32&d=identicon&r=PG"} alt={""}/>
-            );
-    }
-
 }
 
 class GalleryComponent extends React.Component {
@@ -406,16 +376,3 @@ class ThumbnailComponent extends Component {
     }
 }
 export default App;
-
-
-/*
-project
-    default_font default_size
-    page
-        image
-        bubbles
-            x,y,width,height,
-            oridata
-            texts
-                x,y,font, size
- */
