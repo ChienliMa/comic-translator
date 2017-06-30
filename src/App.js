@@ -3,7 +3,7 @@ import React, { Component } from 'react';
 import './App.css';
 
 const testimg = require("./testimg.jpeg");
-
+const testtag = require("./logo.svg");
 var min = (a, b) => {return a < b ? a : b;};
 var max = (a, b) => {return a > b ? a : b;};
 const VERTICALLY = 'vertivally';
@@ -67,11 +67,11 @@ class Bubble {
     constructor (boarder, base_color) {
         this.ctx = document.getElementById("BaseCanvas").getContext("2d");
 
-        var [x, y, x1, y1] = [Number.MAX_SAFE_INTEGER, -1, Number.MAX_SAFE_INTEGER, -1];
-        for (var bx of boarder) {
+        var [x, y, x1, y1] = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, -1, -1];
+        for (var bx in boarder) {
             x = Math.min(bx, x);
-            x1 = Math.max(bx, x1);
             y = Math.min(y, boarder[bx].top);
+            x1 = Math.max(bx, x1);
             y1 = Math.max(y1, boarder[bx].buttom);
         }
 
@@ -83,7 +83,7 @@ class Bubble {
         this.ori_data = this.ctx.getImageData(this.x, this.y, this.width, this.height);
         this.base_color = "rgba(" +base_color[0] +","
                                     + base_color[1] +","
-                                    + base_color[2] +","
+                                    + 122 +","
                                     + base_color[3] +")";
 
         this.direction = VERTICALLY;
@@ -112,14 +112,14 @@ class Bubble {
         for (var x in this.boarder) {
             x = parseInt(x);
             var height = this.boarder[x].buttom - this.boarder[x].top;
-            ctx.fillRect(x, this.boarder[x].top, 1, height);
+            this.ctx.fillRect(x, this.boarder[x].top, 1, height);
         }
 
         // render text
         if (this.texts.length > 1) {
             this.ctx.font = this.fontSize + "px " + this.fontStyle;
             for(var text of this.texts) {
-                ctx.fillText(text.text, this.x + text.x, this.y + text.y);
+                this.ctx.fillText(text.text, this.x + text.x, this.y + text.y);
             }
         }
     }
@@ -294,26 +294,51 @@ class CanvasComponent extends Component {
         }
 
         var newBubble = new Bubble(boarder, ori_color);
-        this.state.bubbles.push(newBubble);
         newBubble.render();
+
+
+        var state = this.state;
+        state.bubbles.push(newBubble);
+        this.setState(state);
     }
 
     getMouseRelativePosition(canvas, event) {
         return [event.pageX - canvas.offsetLeft, event.pageY];
     }
 
+
+    renderBubbles() {
+        return this.state.bubbles.map(
+            (bubble) => {return <BubbleComponent key={bubble.x+','+bubble.y} x={bubble.x+bubble.width} y={bubble.y}></BubbleComponent>}
+        )
+    }
+
     render() {
-        // reset image data (
-        // draw text on canvas
         return(
             <div style={{overflow: "auto", width: "100%"}}>
-                <canvas id="BaseCanvas" onClick={this.canvasOnClick.bind(this)} style={{maxWidth: "100%"}} ></canvas>
-                {/*dra interactive bubble*/}
+                <div style={{}}>
+                    <canvas id="BaseCanvas" onClick={this.canvasOnClick.bind(this)} style={{maxWidth: "100%"}} ></canvas>
+                    {this.renderBubbles()}
+                </div>
+
             </div>
         )
     }
 }
 
+class BubbleComponent extends Component {
+    constructor (props) {
+        super(props);
+        this.state = props
+    }
+
+    render () {
+        return (
+                <img style={{left:this.state.x+"px", top:this.state.y+"px", zIndex:999}} src={"https://www.gravatar.com/avatar/a007be5a61f6aa8f3e85ae2fc18dd66e?s=32&d=identicon&r=PG"} alt={""}/>
+            );
+    }
+
+}
 
 class GalleryComponent extends React.Component {
     constructor(props) {
