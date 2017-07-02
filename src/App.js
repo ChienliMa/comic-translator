@@ -66,7 +66,7 @@ class Text {
 
     setAnchor (pos) {
         this.anchor = pos;
-        this.oriPos = this.pos.copy();
+        this.oriPos = [].concat(this.pos);
     }
 
     clearAnchor () {
@@ -141,9 +141,9 @@ class App extends Component {
     return (
       <div className="App">
           <div style={{display: "flex", width: "100%", height: "100%", position: "absolute"}}>
-              <GalleryComponent project={this.state}></GalleryComponent>
+              <GalleryComponent project={this.state}/>
               <div id="EditorContainer" style={{display:"flex", width: "80%", backgroundColor:"#FF0000", flexGrow: 3, overflow:"scroll"}}>
-                  <InteractiveEditor project={this.state}></InteractiveEditor>
+                  <InteractiveEditor project={this.state}/>
               </div>
           </div>
       </div>
@@ -228,17 +228,17 @@ class InteractiveEditor extends Component {
     refreshRectCanvas () {
         var canvas = this.ctxes.rect.canvas;
         this.ctxes.rect.clearRect(0,0,canvas.width,canvas.height);
-        this.page.texts.map((x) => {x.renderOnContext(this.ctxes.rect)});
+        this.page.rects.map((x) => {x.renderOnContext(this.ctxes.rect)});
     }
 
     refreshTextCanvas () {
         var canvas = this.ctxes.text.canvas;
-        this.ctxes.rect.clearRect(0,0,canvas.width,canvas.height);
+        this.ctxes.text.clearRect(0,0,canvas.width,canvas.height);
         this.page.texts.map((x) => {x.renderOnContext(this.ctxes.text);});
     }
 
-    getMouseRelativePosition(canvas, event) {
-        return [event.pageX - canvas.offsetLeft, event.pageY];
+    getMouseRelativePosition(event) {
+        return [event.nativeEvent.offsetX, event.nativeEvent.offsetY];
     }
 
     onClick(event) {
@@ -247,23 +247,14 @@ class InteractiveEditor extends Component {
     }
 
     onDragStart(event) {
-        var canvas = document.getElementById("TextCanvas");
-        var pos = this.getMouseRelativePosition(canvas, event);
+        var pos = this.getMouseRelativePosition(event);
 
-        switch (this.keyPressed) {
-            case KEYCODE_F :
-                this.rectDragStart(pos);
-                break;
-            case KEYCODE_E :
-                this.textDragStart(pos);
-                break;
-            default:
-                break;
-        }
+        if (this.keyPressed[KEYCODE_F]) this.rectDragStart(pos);;
+        if (this.keyPressed[KEYCODE_E]) this.textDragStart(pos);;
     }
 
     rectDragStart (pos) {
-        var newRect = new Rect(pos, pos.copy());
+        var newRect = new Rect(pos, [].concat(pos)); // copy a new object
         this.page.rects.push(newRect);
         this.drag.state = DRAG_RECT;
         this.drag.item = newRect;
@@ -281,8 +272,8 @@ class InteractiveEditor extends Component {
     }
 
     onDrag (event) {
-        var canvas = document.getElementById("TextCanvas");
-        var pos = this.getMouseRelativePosition(canvas, event);
+        var pos = this.getMouseRelativePosition(event);
+        if ( pos.includes(0)) return; // the last ondrag before ondrag end will return negative value
         switch (this.drag.state){
             case DRAG_RECT:
                 this.rectDragUpdate(pos);
@@ -295,17 +286,23 @@ class InteractiveEditor extends Component {
     }
 
     rectDragUpdate (pos) {
-        this.drag.item.pos2 = pos;
+        this.drag.item.pos2 = [].concat(pos);
+        if (pos.includes(0)){
+            console.log([].concat(pos), this.drag.item.pos2);
+        }
+
         this.refreshRectCanvas();
     }
 
-    rectDragUpdate (pos) {
+    textDragUpdate (pos) {
         this.drag.item.anchorMoveTo(pos);
         this.refreshTextCanvas();
     }
 
     onDragEnd (event) {
+        console.log(this.drag.item);
         if (this.drag.state == DRAG_TEXT) this.drag.item.clearAnchor();
+        console.log(this.drag.item);
         this.drag = {};
     }
 
