@@ -49,7 +49,7 @@ class Text {
         this.pos = pos;
         this.x = pos[0];
         this.y = pos[1];
-        this.text = "你好";
+        this.text = "fdsfs";
         this.width = 0;
         this.height = 0;
 
@@ -60,12 +60,14 @@ class Text {
         this.fontSize = 15;
         this.fontStyle = "serif";
         this.lineGap = 3;
+        this.svg = null;
     }
 
     mouseWithin (pos) {
+        var bbox = this.svg.getBBox();
         const [x, y] = this.pos;
-        return (x <= pos[0] && pos[0] <= x + this.width &&
-                y <= pos[1] && pos[1] <= y + this.height);
+        return (x <= pos[0] && pos[0] <= x + bbox.width &&
+                y <= pos[1] && pos[1] <= y + bbox.height);
     }
 
     setAnchor (pos) {
@@ -81,6 +83,9 @@ class Text {
     anchorMoveTo (pos) {
         this.pos[0] = this.oriPos[0] + pos[0] - this.anchor[0];
         this.pos[1] = this.oriPos[1] + pos[1] - this.anchor[1];
+
+        this.svg.setAttributeNS(null,"x", this.pos[0]);
+        this.svg.setAttributeNS(null,"y",this.pos[1]);
     }
 
     getFont () {
@@ -188,6 +193,7 @@ class InteractiveEditor extends Component {
         this.ctxes.base = document.getElementById("BaseCanvas").getContext("2d");
         this.ctxes.rect = document.getElementById("RectCanvas").getContext("2d");
         this.ctxes.text = document.getElementById("TextCanvas").getContext("2d");
+        this.svg = document.getElementById("TextSvg");
 
         this.loadDemoImage();
         this.registerListeners();
@@ -234,12 +240,15 @@ class InteractiveEditor extends Component {
             this.ctxes[ctx].canvas.width = this.page.image.width;
             this.ctxes[ctx].canvas.height = this.page.image.height;
         }
+        this.svg.setAttribute("width", this.page.image.width);
+        this.svg.setAttribute("height", this.page.image.height);
     }
 
     refreshAllCanvases () {
         this.refreshBaseCanvas();
         this.refreshRectCanvas();
         this.refreshTextCanvas();
+
     }
 
     refreshBaseCanvas () {
@@ -283,8 +292,24 @@ class InteractiveEditor extends Component {
     onClick(event) {
         if (this.keyPressed[KEYCODE_E]) {
             const pos = this.getMouseRelativePosition(event);
-            this.page.texts.push(new Text(pos));
-            this.refreshTextCanvas();
+            // this.page.texts.push(new Text(pos));
+            // this.refreshTextCanvas();
+
+
+            let text = new Text(pos);
+            let newText = document.createElementNS("http://www.w3.org/2000/svg","text");
+            newText.setAttributeNS(null,"x",pos[0]);
+            newText.setAttributeNS(null,"y",pos[1]);
+            newText.setAttributeNS(null,"alignment-baseline","hanging");
+            let textNode = document.createTextNode(text.text);
+            newText.appendChild(textNode);
+
+            this.svg.appendChild(newText);
+            text.svg = newText;
+            var lll = newText.getBBox();
+            var ll = text.svg.getBBox();
+
+            this.page.texts.push(text);
         }
     }
 
@@ -360,7 +385,12 @@ class InteractiveEditor extends Component {
                 <canvas id="TextCanvas" draggable={false} style={{maxWidth: "100%", position: "absolute", zIndex: 3}}
                         onMouseUp={this.onMouseUp.bind(this)} onMouseMove={this.onMouseMove.bind(this)}
                         onMouseDown ={this.onMouseDown.bind(this)} />
-                <TextEditorComponent id="TextEditor" />
+                <svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="TextSvg"  style={{position: "absolute", zIndex: 7}}
+                     onMouseUp={this.onMouseUp.bind(this)} onMouseMove={this.onMouseMove.bind(this)}
+                     onMouseDown ={this.onMouseDown.bind(this)}>
+
+                </svg>
+                <TextEditorComponent id="TextEditor" project={this.project} />
             </div>
         )
     }
@@ -369,14 +399,30 @@ class InteractiveEditor extends Component {
 class TextEditorComponent extends Component {
     constructor (props) {
         super(props);
-        this.state = props.project;
+        this.project = props.project;
+        this.state = new Text([0,0]);
+    }
+
+    componentDidMount () {
+        var fontSize = document.getElementById("fontSize");
+        for (let i=0;i<100;i++) {
+            let opt = document.createElement("option");
+            opt.value=i;
+            opt.innerHTML=i;
+            fontSize.appendChild(opt);
+        }
     }
 
     render() {
-        return ( <div style={{position:"absolute", right:0, top:0}}>
-            <label>Size</label><textarea  >fdsafdsaf </textarea> <p></p>
-            <label>Content</label> <textarea > fsafdsaf </textarea>
-        </div>)
+        return (
+            <div style={{position:"absolute", backgroundColor:"gray", right: 15, top:10, zIndex:10}}>
+                <label>Size</label><p/>
+                <select id="fontSize" > </select><p/>
+
+                <label>Content</label><p/>
+                <textarea rows={10} cols={30} contentEditable={true}> fsafdsaf </textarea>
+            </div>
+        )
     }
 }
 
