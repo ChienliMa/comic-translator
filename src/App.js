@@ -1,4 +1,6 @@
 import React, { Component } from 'react';
+import {throttle} from 'throttle-debounce';
+
 import './App.css';
 
 const testimg = require("./testimg.jpeg");
@@ -8,10 +10,14 @@ const HORIZENTALLY = 'horizentally';
 
 const DRAG_RECT = "DRAG_RECT";
 const DRAG_TEXT = "DRAG_TEXT";
+const DRAG_NOTHING = "DRAG_NOTHING";
+const NOT_DRAGGING = "NOT_DRAGGING";
 
 const KEYCODE_E = 69;
 const KEYCODE_F = 70;
 const KEYCODE_G = 71;
+const KEYCODE_W = 87;
+
 const KEYCODE_SPACE = 32;
 
 function distance (a, b) {
@@ -43,7 +49,7 @@ class Text {
         this.pos = pos;
         this.x = pos[0];
         this.y = pos[1];
-        this.text = "FUCK YOU MAN";
+        this.text = "你好";
         this.width = 0;
         this.height = 0;
 
@@ -57,7 +63,7 @@ class Text {
     }
 
     mouseWithin (pos) {
-        let [x, y] = this.pos;
+        const [x, y] = this.pos;
         return (x <= pos[0] && pos[0] <= x + this.width &&
                 y <= pos[1] && pos[1] <= y + this.height);
     }
@@ -65,17 +71,14 @@ class Text {
     setAnchor (pos) {
         this.anchor = [].concat(pos);
         this.oriPos = [].concat(this.pos);
-        console.log("begin" + this.pos)
     }
 
     clearAnchor () {
         this.anchor = null;
         this.oriPos = null;
-        console.log("end" + this.pos)
     }
 
     anchorMoveTo (pos) {
-        console.log(""+this.pos);
         this.pos[0] = this.oriPos[0] + pos[0] - this.anchor[0];
         this.pos[1] = this.oriPos[1] + pos[1] - this.anchor[1];
     }
@@ -92,7 +95,7 @@ class Text {
         let count = 0;
         ctx.fillStyle = "black";
         ctx.textBaseline="hanging";
-        let [x, y] = this.pos;
+        const [x, y] = this.pos;
         for (let text of this.text.split("\n")) {
             this.width = Math.max(this.width, ctx.measureText(text).width);
             this.height = this.height + this.lineGap + this.fontSize;
@@ -110,8 +113,8 @@ class Rect {
     }
 
     renderOnContext(ctx) {
-        let [x,y] = this.pos1;
-        let [x1, y1] = this.pos2;
+        const [x,y] = this.pos1;
+        const [x1, y1] = this.pos2;
         ctx.fillStyle = "white";
         ctx.fillRect(x, y, x1 - x, y1 - y);
     }
@@ -160,8 +163,8 @@ class InteractiveEditor extends Component {
         super(props);
         this.state = props;
 
-        let page = new Page();
-        let demo_img = new Image();
+        const page = new Page();
+        const demo_img = new Image();
         demo_img.src = testimg;
         page.image = demo_img;
 
@@ -172,7 +175,10 @@ class InteractiveEditor extends Component {
         this.drag.state = "";
         this.drag.item = null;
         this.drag.startPos = null;
+
         this.keyPressed = {};
+
+        this.hidden = false;
     }
 
     componentDidMount() {
@@ -192,14 +198,29 @@ class InteractiveEditor extends Component {
     }
 
     registerListeners () {
-        let model = this;
-        document.body.addEventListener('keydown', function(event) {
-            model.keyPressed[event.keyCode] = true;
-        });
+        const model = this;
+        document.body.addEventListener('keydown', model.onKeyDown.bind(model));
+        document.body.addEventListener('keyup', model.onKeyUp.bind(model));
+    }
 
-        document.body.addEventListener('keyup', function(event) {
-            model.keyPressed[event.keyCode] = false;
-        });
+    onKeyDown (event) {
+        this.keyPressed[event.keyCode] = true;
+
+        if (event.keyCode === KEYCODE_W && !this.hidden) {
+            this.hidden = true;
+            this.clearRectCanvas();
+            this.clearTextCanvas();
+        }
+    }
+
+    onKeyUp (event) {
+        this.keyPressed[event.keyCode] = false;
+
+        if (event.keyCode === KEYCODE_W && this.hidden) {
+            this.hidden = false;
+            this.renderRectCanvas();
+            this.renderTextCanvas();
+        }
     }
 
     switchToPage (page) {
@@ -226,14 +247,32 @@ class InteractiveEditor extends Component {
     }
 
     refreshRectCanvas () {
-        let canvas = this.ctxes.rect.canvas;
+        this.clearRectCanvas();
+        this.renderRectCanvas();
+    }
+
+
+    clearRectCanvas () {
+        const canvas = this.ctxes.rect.canvas;
         this.ctxes.rect.clearRect(0,0,canvas.width,canvas.height);
+    }
+
+    renderRectCanvas () {
         this.page.rects.map((x) => {x.renderOnContext(this.ctxes.rect)});
     }
 
+
     refreshTextCanvas () {
-        let canvas = this.ctxes.text.canvas;
+        this.clearTextCanvas();
+        this.renderTextCanvas();
+    }
+
+    clearTextCanvas () {
+        const canvas = this.ctxes.text.canvas;
         this.ctxes.text.clearRect(0,0,canvas.width,canvas.height);
+    }
+
+    renderTextCanvas () {
         this.page.texts.map((x) => {x.renderOnContext(this.ctxes.text);});
     }
 
@@ -243,21 +282,24 @@ class InteractiveEditor extends Component {
 
     onClick(event) {
         if (this.keyPressed[KEYCODE_E]) {
-            let pos = this.getMouseRelativePosition(event);
+            const pos = this.getMouseRelativePosition(event);
             this.page.texts.push(new Text(pos));
             this.refreshTextCanvas();
         }
     }
 
-    onDragStart(event) {
-        let pos = this.getMouseRelativePosition(event);
+    onMouseDown(event) {
+        const pos = this.getMouseRelativePosition(event);
 
-        if (this.keyPressed[KEYCODE_F]) this.rectDragStart(pos);
-        if (this.keyPressed[KEYCODE_E]) this.textDragStart(pos);
+        if (this.keyPressed[KEYCODE_F]) {
+            this.rectDragStart(pos);
+        } else if (this.keyPressed[KEYCODE_E]) {
+            this.textDragStart(pos);
+        }
     }
 
     rectDragStart (pos) {
-        let newRect = new Rect(pos, [].concat(pos)); // copy a new object
+        const newRect = new Rect(pos, [].concat(pos)); // copy a new object
         this.page.rects.push(newRect);
         this.drag.state = DRAG_RECT;
         this.drag.item = newRect;
@@ -272,10 +314,16 @@ class InteractiveEditor extends Component {
                 return;
             }
         }
+        this.drag.state = NOT_DRAGGING;
     }
 
-    onDrag (event) {
-        let pos = this.getMouseRelativePosition(event);
+    onMouseMove (event) {
+        if (this.drag.state == NOT_DRAGGING ){
+            this.drag.state = DRAG_NOTHING
+            return;
+        }
+
+        const pos = this.getMouseRelativePosition(event);
         if ( pos.includes(0)) return; // the last ondrag before ondrag end will return negative value
         switch (this.drag.state){
             case DRAG_RECT:
@@ -298,23 +346,40 @@ class InteractiveEditor extends Component {
         this.refreshTextCanvas();
     }
 
-    onDragEnd () {
-        if (this.drag.state === DRAG_TEXT) this.drag.item.clearAnchor();
-        this.drag = {};
+    onMouseUp (event) {
+        if (this.drag.state === NOT_DRAGGING) (this.onClick(event));
+        if (this.drag.state === DRAG_TEXT) { this.drag.item.clearAnchor(); }
+        this.drag = {state : ""};
     }
 
     render() {
         return (
             <div style={{position: "relative", overflow: "auto", width: "100%"}} >
-                <canvas id="BaseCanvas" style={{maxWidth: "100%", position: "absolute", zIndex: 1}}/>
+                <canvas id="BaseCanvas"  style={{maxWidth: "100%", position: "absolute", zIndex: 1}}/>
                 <canvas id="RectCanvas" style={{maxWidth: "100%", position: "absolute", zIndex: 2}}/>
-                <canvas id="TextCanvas" draggable="true" style={{maxWidth: "100%", position: "absolute", zIndex: 3}}
-                        onDragEnd={this.onDragEnd.bind(this)} onDrag={this.onDrag.bind(this)}
-                        onDragStart={this.onDragStart.bind(this)} onClick={this.onClick.bind(this)}/>
+                <canvas id="TextCanvas" draggable={false} style={{maxWidth: "100%", position: "absolute", zIndex: 3}}
+                        onMouseUp={this.onMouseUp.bind(this)} onMouseMove={this.onMouseMove.bind(this)}
+                        onMouseDown ={this.onMouseDown.bind(this)} />
+                <TextEditorComponent id="TextEditor" />
             </div>
         )
     }
 }
+
+class TextEditorComponent extends Component {
+    constructor (props) {
+        super(props);
+        this.state = props.project;
+    }
+
+    render() {
+        return ( <div style={{position:"absolute", right:0, top:0}}>
+            <label>Size</label><textarea  >fdsafdsaf </textarea> <p></p>
+            <label>Content</label> <textarea > fsafdsaf </textarea>
+        </div>)
+    }
+}
+
 
 class GalleryComponent extends React.Component {
     constructor(props) {
@@ -323,11 +388,11 @@ class GalleryComponent extends React.Component {
     }
 
     uploadImages(event) {
-        let files = event.target.files; //FileList object
+        const files = event.target.files; //FileList object
 
-        let loadImage = (event) => {
+        const loadImage = (event) => {
 
-            let page = new Page();
+            const page = new Page();
             page.image = new Image();
             page.image.src = event.target.result;
 
@@ -340,7 +405,7 @@ class GalleryComponent extends React.Component {
 
         for(let file of files)
         {
-            let picReader = new FileReader();
+            const picReader = new FileReader();
             picReader.addEventListener("load", loadImage.bind(this));
             picReader.readAsDataURL(file);
         }
