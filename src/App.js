@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-
 import './App.css';
 
 const testimg = require("./testimg.jpeg");
@@ -58,8 +57,9 @@ class Text {
     }
 
     mouseWithin (pos) {
-        return (this.x <= pos[0] && pos[0] <= this.x + this.width &&
-                this.y <= pos[1] && pos[1] <= this.y + this.height);
+        let [x, y] = this.pos;
+        return (x <= pos[0] && pos[0] <= x + this.width &&
+                y <= pos[1] && pos[1] <= y + this.height);
     }
 
     setAnchor (pos) {
@@ -92,10 +92,11 @@ class Text {
         let count = 0;
         ctx.fillStyle = "black";
         ctx.textBaseline="hanging";
+        let [x, y] = this.pos;
         for (let text of this.text.split("\n")) {
             this.width = Math.max(this.width, ctx.measureText(text).width);
             this.height = this.height + this.lineGap + this.fontSize;
-            ctx.fillText(text, this.x, this.y + count * (this.lineGap + this.fontSize));
+            ctx.fillText(text, x, y + count * (this.lineGap + this.fontSize));
             count = count + 1;
         }
 
@@ -298,7 +299,7 @@ class InteractiveEditor extends Component {
     }
 
     onDragEnd () {
-        if (this.drag.state == DRAG_TEXT) this.drag.item.clearAnchor();
+        if (this.drag.state === DRAG_TEXT) this.drag.item.clearAnchor();
         this.drag = {};
     }
 
