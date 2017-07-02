@@ -3,10 +3,6 @@ import React, { Component } from 'react';
 import './App.css';
 
 const testimg = require("./testimg.jpeg");
-const testtag = require("./logo.svg");
-var min = (a, b) => {return a < b ? a : b;};
-var max = (a, b) => {return a > b ? a : b;};
-
 
 const VERTICALLY = 'vertivally';
 const HORIZENTALLY = 'horizentally';
@@ -46,7 +42,9 @@ class Page {
 class Text {
     constructor (pos) {
         this.pos = pos;
-        this.text = "";
+        this.x = pos[0];
+        this.y = pos[1];
+        this.text = "FUCK YOU MAN";
         this.width = 0;
         this.height = 0;
 
@@ -60,21 +58,24 @@ class Text {
     }
 
     mouseWithin (pos) {
-        return (this.x <= pos[0] <= this.x + this.width) &
-                (this.y <= pos[1] <= this.y + this.height);
+        return (this.x <= pos[0] && pos[0] <= this.x + this.width &&
+                this.y <= pos[1] && pos[1] <= this.y + this.height);
     }
 
     setAnchor (pos) {
-        this.anchor = pos;
+        this.anchor = [].concat(pos);
         this.oriPos = [].concat(this.pos);
+        console.log("begin" + this.pos)
     }
 
     clearAnchor () {
         this.anchor = null;
-        this.oriPos = this.pos;
+        this.oriPos = null;
+        console.log("end" + this.pos)
     }
 
     anchorMoveTo (pos) {
+        console.log(""+this.pos);
         this.pos[0] = this.oriPos[0] + pos[0] - this.anchor[0];
         this.pos[1] = this.oriPos[1] + pos[1] - this.anchor[1];
     }
@@ -88,8 +89,10 @@ class Text {
         this.width = 0;
         this.height = 0;
 
-        var count = 0;
-        for (var text of this.text.split("\n")) {
+        let count = 0;
+        ctx.fillStyle = "black";
+        ctx.textBaseline="hanging";
+        for (let text of this.text.split("\n")) {
             this.width = Math.max(this.width, ctx.measureText(text).width);
             this.height = this.height + this.lineGap + this.fontSize;
             ctx.fillText(text, this.x, this.y + count * (this.lineGap + this.fontSize));
@@ -106,8 +109,8 @@ class Rect {
     }
 
     renderOnContext(ctx) {
-        var [x,y] = this.pos1;
-        var [x1, y1] = this.pos2;
+        let [x,y] = this.pos1;
+        let [x1, y1] = this.pos2;
         ctx.fillStyle = "white";
         ctx.fillRect(x, y, x1 - x, y1 - y);
     }
@@ -133,7 +136,7 @@ class EventProxy {
 class App extends Component {
 
     constructor (props) {
-        super(props)
+        super(props);
         this.state = new Project();
     }
 
@@ -156,8 +159,8 @@ class InteractiveEditor extends Component {
         super(props);
         this.state = props;
 
-        var page = new Page();
-        var demo_img = new Image();
+        let page = new Page();
+        let demo_img = new Image();
         demo_img.src = testimg;
         page.image = demo_img;
 
@@ -184,15 +187,11 @@ class InteractiveEditor extends Component {
     }
 
     loadDemoImage() {
-        if (this.page.image.complete) {
-            this.updateCanvas();
-        } else {
-            this.page.image.onload = () => {this.resizeCanvases(); this.refreshAllCanvases();};
-        }
+        this.page.image.onload = () => {this.resizeCanvases(); this.refreshAllCanvases();};
     }
 
     registerListeners () {
-        var model = this;
+        let model = this;
         document.body.addEventListener('keydown', function(event) {
             model.keyPressed[event.keyCode] = true;
         });
@@ -209,7 +208,7 @@ class InteractiveEditor extends Component {
     }
 
     resizeCanvases () {
-        for(var ctx in this.ctxes) {
+        for(let ctx in this.ctxes) {
             this.ctxes[ctx].canvas.width = this.page.image.width;
             this.ctxes[ctx].canvas.height = this.page.image.height;
         }
@@ -226,13 +225,13 @@ class InteractiveEditor extends Component {
     }
 
     refreshRectCanvas () {
-        var canvas = this.ctxes.rect.canvas;
+        let canvas = this.ctxes.rect.canvas;
         this.ctxes.rect.clearRect(0,0,canvas.width,canvas.height);
         this.page.rects.map((x) => {x.renderOnContext(this.ctxes.rect)});
     }
 
     refreshTextCanvas () {
-        var canvas = this.ctxes.text.canvas;
+        let canvas = this.ctxes.text.canvas;
         this.ctxes.text.clearRect(0,0,canvas.width,canvas.height);
         this.page.texts.map((x) => {x.renderOnContext(this.ctxes.text);});
     }
@@ -242,37 +241,40 @@ class InteractiveEditor extends Component {
     }
 
     onClick(event) {
-        var canvas = document.getElementById("TextCanvas");
-        var ctx = canvas.getContext('2d');
+        if (this.keyPressed[KEYCODE_E]) {
+            let pos = this.getMouseRelativePosition(event);
+            this.page.texts.push(new Text(pos));
+            this.refreshTextCanvas();
+        }
     }
 
     onDragStart(event) {
-        var pos = this.getMouseRelativePosition(event);
+        let pos = this.getMouseRelativePosition(event);
 
-        if (this.keyPressed[KEYCODE_F]) this.rectDragStart(pos);;
-        if (this.keyPressed[KEYCODE_E]) this.textDragStart(pos);;
+        if (this.keyPressed[KEYCODE_F]) this.rectDragStart(pos);
+        if (this.keyPressed[KEYCODE_E]) this.textDragStart(pos);
     }
 
     rectDragStart (pos) {
-        var newRect = new Rect(pos, [].concat(pos)); // copy a new object
+        let newRect = new Rect(pos, [].concat(pos)); // copy a new object
         this.page.rects.push(newRect);
         this.drag.state = DRAG_RECT;
         this.drag.item = newRect;
     }
 
-    textDragStart (text, pos) {
-        for (var text of this.page.texts) {
-            if (text.mouseWithin(pos)) {
+    textDragStart (pos) {
+        for (let i=0; i< this.page.texts.length; i++) {
+            if (this.page.texts[i].mouseWithin(pos)) {
                 this.drag.state = DRAG_TEXT;
-                this.drag.item = text;
-                text.setAnchor(pos);
-                break;
+                this.drag.item = this.page.texts[i];
+                this.page.texts[i].setAnchor(pos);
+                return;
             }
         }
     }
 
     onDrag (event) {
-        var pos = this.getMouseRelativePosition(event);
+        let pos = this.getMouseRelativePosition(event);
         if ( pos.includes(0)) return; // the last ondrag before ondrag end will return negative value
         switch (this.drag.state){
             case DRAG_RECT:
@@ -287,10 +289,6 @@ class InteractiveEditor extends Component {
 
     rectDragUpdate (pos) {
         this.drag.item.pos2 = [].concat(pos);
-        if (pos.includes(0)){
-            console.log([].concat(pos), this.drag.item.pos2);
-        }
-
         this.refreshRectCanvas();
     }
 
@@ -299,21 +297,19 @@ class InteractiveEditor extends Component {
         this.refreshTextCanvas();
     }
 
-    onDragEnd (event) {
-        console.log(this.drag.item);
+    onDragEnd () {
         if (this.drag.state == DRAG_TEXT) this.drag.item.clearAnchor();
-        console.log(this.drag.item);
         this.drag = {};
     }
 
     render() {
         return (
             <div style={{position: "relative", overflow: "auto", width: "100%"}} >
-                <canvas id="BaseCanvas" style={{maxWidth: "100%", position: "absolute", zIndex: 1}}></canvas>
-                <canvas id="RectCanvas" style={{maxWidth: "100%", position: "absolute", zIndex: 2}}></canvas>
+                <canvas id="BaseCanvas" style={{maxWidth: "100%", position: "absolute", zIndex: 1}}/>
+                <canvas id="RectCanvas" style={{maxWidth: "100%", position: "absolute", zIndex: 2}}/>
                 <canvas id="TextCanvas" draggable="true" style={{maxWidth: "100%", position: "absolute", zIndex: 3}}
                         onDragEnd={this.onDragEnd.bind(this)} onDrag={this.onDrag.bind(this)}
-                        onDragStart={this.onDragStart.bind(this)}></canvas>
+                        onDragStart={this.onDragStart.bind(this)} onClick={this.onClick.bind(this)}/>
             </div>
         )
     }
@@ -326,11 +322,11 @@ class GalleryComponent extends React.Component {
     }
 
     uploadImages(event) {
-        var files = event.target.files; //FileList object
+        let files = event.target.files; //FileList object
 
-        var loadImage = (event) => {
+        let loadImage = (event) => {
 
-            var page = new Page();
+            let page = new Page();
             page.image = new Image();
             page.image.src = event.target.result;
 
@@ -341,9 +337,9 @@ class GalleryComponent extends React.Component {
             this.setState(this.state);
         };
 
-        for(var file of files)
+        for(let file of files)
         {
-            var picReader = new FileReader();
+            let picReader = new FileReader();
             picReader.addEventListener("load", loadImage.bind(this));
             picReader.readAsDataURL(file);
         }
@@ -353,7 +349,7 @@ class GalleryComponent extends React.Component {
         return (
             this.state.pages.map(
                 (page) => {
-                    return ( <ThumbnailComponent page={page} key={page.key} proxy={this.state.proxy}></ThumbnailComponent>)
+                    return ( <ThumbnailComponent page={page} key={page.key} proxy={this.state.proxy}/>)
                 }
             )
         )
@@ -377,14 +373,14 @@ class ThumbnailComponent extends Component {
         this.proxy = props.proxy;
     }
 
-    onClick (event) {
+    onClick () {
         this.proxy.trigger("SelectImg", this.page);
     }
 
     render () {
         return(
             <img src={this.page.image.src} onClick={this.onClick.bind(this)}
-                 style={{maxWidth:"100%", display:"block",float:"left"}}></img>
+                 style={{maxWidth:"100%", display:"block",float:"left"}}/>
         )
     }
 }
