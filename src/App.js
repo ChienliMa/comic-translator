@@ -12,6 +12,7 @@ const DRAG_RECT = "DRAG_RECT";
 const DRAG_TEXT = "DRAG_TEXT";
 const DRAG_NOTHING = "DRAG_NOTHING";
 const NOT_DRAGGING = "NOT_DRAGGING";
+const DRAG_START = "DRAG_START";
 
 const KEYCODE_E = 69;
 const KEYCODE_F = 70;
@@ -19,6 +20,7 @@ const KEYCODE_G = 71;
 const KEYCODE_W = 87;
 
 const KEYCODE_SPACE = 32;
+
 
 function distance (a, b) {
     var sum = 0;
@@ -47,68 +49,91 @@ class Page {
 class Text {
     constructor (pos) {
         this.pos = pos;
-        this.x = pos[0];
-        this.y = pos[1];
-        this.text = "fdsfs";
-        this.width = 0;
-        this.height = 0;
+        this.text = "你好 \n     哈哈";
 
-        // for dragging
-        this.anchor = null;
-        this.oriPos = null;
-
-        this.fontSize = 15;
+        this.fontSize = 30;
         this.fontStyle = "serif";
-        this.lineGap = 3;
-        this.svg = null;
+
+        this.strokeWidth = 2;
+        this.isVertical = true;
+    }
+}
+
+
+class TextComponent extends Component {
+    constructor (props) {
+        super(props);
+        this.state = props.text;
+        this.keyPressed = props.keyPressed;
+        this.dragState = NOT_DRAGGING;
+        this.oriPos = [0,0];
+        this.anchor = [0,0];
     }
 
-    mouseWithin (pos) {
-        var bbox = this.svg.getBBox();
-        const [x, y] = this.pos;
-        return (x <= pos[0] && pos[0] <= x + bbox.width &&
-                y <= pos[1] && pos[1] <= y + bbox.height);
+    componentDidMount () {
+        document.body.addEventListener('mousemove', this.onMouseMove.bind(this));
     }
 
-    setAnchor (pos) {
-        this.anchor = [].concat(pos);
-        this.oriPos = [].concat(this.pos);
+    componentWillMount () {
+        document.body.removeEventListener('mousemove', this.onMouseMove.bind(this));
     }
 
-    clearAnchor () {
-        this.anchor = null;
-        this.oriPos = null;
+    onMouseDown (event) {
+        this.anchor = [event.clientX, event.clientY];
+        this.oriPos = [].concat(this.state.pos);
+        this.dragState = DRAG_START;
     }
 
-    anchorMoveTo (pos) {
-        this.pos[0] = this.oriPos[0] + pos[0] - this.anchor[0];
-        this.pos[1] = this.oriPos[1] + pos[1] - this.anchor[1];
-
-        this.svg.setAttributeNS(null,"x", this.pos[0]);
-        this.svg.setAttributeNS(null,"y",this.pos[1]);
-    }
-
-    getFont () {
-        return this.fontSize + "px " + this.fontStyle;
-    }
-
-    renderOnContext (ctx) {
-        ctx.font = this.getFont();
-        this.width = 0;
-        this.height = 0;
-
-        let count = 0;
-        ctx.fillStyle = "black";
-        ctx.textBaseline="hanging";
-        const [x, y] = this.pos;
-        for (let text of this.text.split("\n")) {
-            this.width = Math.max(this.width, ctx.measureText(text).width);
-            this.height = this.height + this.lineGap + this.fontSize;
-            ctx.fillText(text, x, y + count * (this.lineGap + this.fontSize));
-            count = count + 1;
+    onMouseMove (event) {
+        if (this.dragState == DRAG_START) { // / onclick
+            this.dragState = DRAG_TEXT;
         }
 
+        if (this.dragState == DRAG_TEXT) {
+            let x = this.oriPos[0] + event.clientX - this.anchor[0];
+            let y = this.oriPos[1] + event.clientY - this.anchor[1];
+            this.setState({pos: [x, y]});
+        }
     }
+
+    onMouseUp (event) {
+        if (this.dragState == DRAG_START) { // onclick
+            // listen to editor
+        }
+        this.dragState = DRAG_NOTHING;
+    }
+
+    render () {
+        let tspans = [];
+        let writtingMode = "";
+
+        if (this.state.isVertical) {
+            this.state.text.split("\n").forEach( (line, index) => {
+                let dy = line.length - line.trim().length;
+                console.log([line.length , line.trim().length])
+                tspans.push(<tspan y={this.state.pos[1] + dy*this.state.fontSize*0.1} dx={-index * this.state.fontSize}>{line.trim()}</tspan>)
+            })
+            writtingMode = "tb";
+        } else {
+            this.state.text.split("\n").forEach( (line, index) => {
+                let dx = line.length - line.trim().length;
+                console.log([line.length , line.trim().length])
+                tspans.push(<tspan x={this.state.pos[0] + dx*this.state.fontSize*0.1} dy={index * this.state.fontSize}>{line.trim()}</tspan>)
+            })
+        }
+
+        return (
+                <text style={{writingMode:writtingMode}} alignment-baseline="hanging"
+                       x={this.state.pos[0]} y={this.state.pos[1]}
+                      fontSize={this.state.fontSize} fontFamile={this.state.fontStyle} strokeWidth={this.state.strokeWidth}
+                      stroke="#ffffff" fill="#000000"
+                      onMouseDown={this.onMouseDown.bind(this)}  onMouseUp={this.onMouseUp.bind(this)}
+                >
+                    {tspans}
+                </text>
+        )
+    }
+
 }
 
 class Rect {
@@ -137,10 +162,20 @@ class EventProxy {
         this.events[event].push(callback);
     }
 
+    clearSubscribes (event) {
+        this.events.event = [];
+    }
+
     trigger (event, msg) {
-        this.events[event].map((callback)=>{return callback(msg);});
+        if ( this.events[event] ) {
+            this.events[event].map((callback)=>{return callback(msg);});
+        }
+
     }
 }
+
+const proxy = new EventProxy();
+
 
 class App extends Component {
 
@@ -166,7 +201,8 @@ class App extends Component {
 class InteractiveEditor extends Component {
     constructor(props) {
         super(props);
-        this.state = props;
+        this.state = {project:props.project};
+
 
         const page = new Page();
         const demo_img = new Image();
@@ -181,6 +217,8 @@ class InteractiveEditor extends Component {
         this.drag.item = null;
         this.drag.startPos = null;
 
+        this.state.texts = this.page.texts;
+
         this.keyPressed = {};
 
         this.hidden = false;
@@ -192,8 +230,8 @@ class InteractiveEditor extends Component {
         this.ctxes = {};
         this.ctxes.base = document.getElementById("BaseCanvas").getContext("2d");
         this.ctxes.rect = document.getElementById("RectCanvas").getContext("2d");
-        this.ctxes.text = document.getElementById("TextCanvas").getContext("2d");
-        this.svg = document.getElementById("TextSvg");
+
+        this.textSvg = document.getElementById("TextSvg");
 
         this.loadDemoImage();
         this.registerListeners();
@@ -215,7 +253,6 @@ class InteractiveEditor extends Component {
         if (event.keyCode === KEYCODE_W && !this.hidden) {
             this.hidden = true;
             this.clearRectCanvas();
-            this.clearTextCanvas();
         }
     }
 
@@ -225,7 +262,6 @@ class InteractiveEditor extends Component {
         if (event.keyCode === KEYCODE_W && this.hidden) {
             this.hidden = false;
             this.renderRectCanvas();
-            this.renderTextCanvas();
         }
     }
 
@@ -240,15 +276,13 @@ class InteractiveEditor extends Component {
             this.ctxes[ctx].canvas.width = this.page.image.width;
             this.ctxes[ctx].canvas.height = this.page.image.height;
         }
-        this.svg.setAttribute("width", this.page.image.width);
-        this.svg.setAttribute("height", this.page.image.height);
+        this.textSvg.setAttribute("width", this.page.image.width);
+        this.textSvg.setAttribute("height", this.page.image.height);
     }
 
     refreshAllCanvases () {
         this.refreshBaseCanvas();
         this.refreshRectCanvas();
-        this.refreshTextCanvas();
-
     }
 
     refreshBaseCanvas () {
@@ -270,56 +304,24 @@ class InteractiveEditor extends Component {
         this.page.rects.map((x) => {x.renderOnContext(this.ctxes.rect)});
     }
 
-
-    refreshTextCanvas () {
-        this.clearTextCanvas();
-        this.renderTextCanvas();
-    }
-
-    clearTextCanvas () {
-        const canvas = this.ctxes.text.canvas;
-        this.ctxes.text.clearRect(0,0,canvas.width,canvas.height);
-    }
-
-    renderTextCanvas () {
-        this.page.texts.map((x) => {x.renderOnContext(this.ctxes.text);});
-    }
-
-    getMouseRelativePosition(event) {
-        return [event.nativeEvent.offsetX, event.nativeEvent.offsetY];
-    }
-
     onClick(event) {
         if (this.keyPressed[KEYCODE_E]) {
-            const pos = this.getMouseRelativePosition(event);
-            // this.page.texts.push(new Text(pos));
-            // this.refreshTextCanvas();
-
-
+            const pos = [event.nativeEvent.offsetX, event.nativeEvent.offsetY];
             let text = new Text(pos);
-            let newText = document.createElementNS("http://www.w3.org/2000/svg","text");
-            newText.setAttributeNS(null,"x",pos[0]);
-            newText.setAttributeNS(null,"y",pos[1]);
-            newText.setAttributeNS(null,"alignment-baseline","hanging");
-            let textNode = document.createTextNode(text.text);
-            newText.appendChild(textNode);
-
-            this.svg.appendChild(newText);
-            text.svg = newText;
-            var lll = newText.getBBox();
-            var ll = text.svg.getBBox();
-
             this.page.texts.push(text);
+            this.setState({texts : this.state.texts.concat([text])});
+
         }
     }
 
     onMouseDown(event) {
-        const pos = this.getMouseRelativePosition(event);
+        const pos = [event.nativeEvent.offsetX, event.nativeEvent.offsetY];
 
         if (this.keyPressed[KEYCODE_F]) {
             this.rectDragStart(pos);
         } else if (this.keyPressed[KEYCODE_E]) {
-            this.textDragStart(pos);
+            // this.textDragStart(pos);
+            // this.drag.state = DRAG_TEXT;
         }
     }
 
@@ -330,33 +332,21 @@ class InteractiveEditor extends Component {
         this.drag.item = newRect;
     }
 
-    textDragStart (pos) {
-        for (let i=0; i< this.page.texts.length; i++) {
-            if (this.page.texts[i].mouseWithin(pos)) {
-                this.drag.state = DRAG_TEXT;
-                this.drag.item = this.page.texts[i];
-                this.page.texts[i].setAnchor(pos);
-                return;
-            }
-        }
-        this.drag.state = NOT_DRAGGING;
-    }
-
     onMouseMove (event) {
         if (this.drag.state == NOT_DRAGGING ){
             this.drag.state = DRAG_NOTHING
             return;
         }
 
-        const pos = this.getMouseRelativePosition(event);
+        const pos = [event.nativeEvent.offsetX, event.nativeEvent.offsetY];
         if ( pos.includes(0)) return; // the last ondrag before ondrag end will return negative value
         switch (this.drag.state){
             case DRAG_RECT:
                 this.rectDragUpdate(pos);
                 break;
-            case DRAG_TEXT:
-                this.textDragUpdate(pos);
-                break;
+            // case DRAG_TEXT:
+            //     this.textDragUpdate(pos);
+            //     break;
             default:
         }
     }
@@ -366,29 +356,23 @@ class InteractiveEditor extends Component {
         this.refreshRectCanvas();
     }
 
-    textDragUpdate (pos) {
-        this.drag.item.anchorMoveTo(pos);
-        this.refreshTextCanvas();
-    }
-
     onMouseUp (event) {
-        if (this.drag.state === NOT_DRAGGING) (this.onClick(event));
-        if (this.drag.state === DRAG_TEXT) { this.drag.item.clearAnchor(); }
         this.drag = {state : ""};
     }
 
     render() {
+        let texts = [];
+        for (let text of this.page.texts) {
+            texts.push(<TextComponent keyPressed={this.keyPressed} text={text}/>)
+        }
         return (
             <div style={{position: "relative", overflow: "auto", width: "100%"}} >
                 <canvas id="BaseCanvas"  style={{maxWidth: "100%", position: "absolute", zIndex: 1}}/>
                 <canvas id="RectCanvas" style={{maxWidth: "100%", position: "absolute", zIndex: 2}}/>
-                <canvas id="TextCanvas" draggable={false} style={{maxWidth: "100%", position: "absolute", zIndex: 3}}
-                        onMouseUp={this.onMouseUp.bind(this)} onMouseMove={this.onMouseMove.bind(this)}
-                        onMouseDown ={this.onMouseDown.bind(this)} />
                 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="TextSvg"  style={{position: "absolute", zIndex: 7}}
                      onMouseUp={this.onMouseUp.bind(this)} onMouseMove={this.onMouseMove.bind(this)}
-                     onMouseDown ={this.onMouseDown.bind(this)}>
-
+                     onMouseDown ={this.onMouseDown.bind(this)} onClick={this.onClick.bind(this)}>
+                    {texts}
                 </svg>
                 <TextEditorComponent id="TextEditor" project={this.project} />
             </div>
