@@ -372,13 +372,13 @@ class TextComponent extends Component {
         if (this.state.isVertical) {
             this.state.text.split("\n").forEach( (line, index) => {
                 let dy = line.length - line.trim().length;
-                tspans.push(<tspan y={this.state.pos[1] + dy*this.state.fontSize*0.1} dx={-index * this.state.fontSize}>{line.trim()}</tspan>)
+                tspans.push(<tspan y={this.state.pos[1] + dy*this.state.fontSize*0.1} dx={-this.state.fontSize}>{line.trim()}</tspan>)
             })
             writtingMode = "tb";
         } else {
             this.state.text.split("\n").forEach( (line, index) => {
                 let dx = line.length - line.trim().length;
-                tspans.push(<tspan x={this.state.pos[0] + dx*this.state.fontSize*0.1} dy={index * this.state.fontSize}>{line.trim()}</tspan>)
+                tspans.push(<tspan x={this.state.pos[0] + dx*this.state.fontSize*0.1} dy={ this.state.fontSize}>{line.trim()}</tspan>)
             })
         }
 
