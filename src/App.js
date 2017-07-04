@@ -1,13 +1,9 @@
 import React, { Component } from 'react';
 import { Editor, Plain } from "slate";
 
-
 import './App.css';
 
 const testimg = require("./testimg.jpeg");
-
-const VERTICALLY = 'vertivally';
-const HORIZENTALLY = 'horizentally';
 
 const DRAG_RECT = "DRAG_RECT";
 const DRAG_TEXT = "DRAG_TEXT";
@@ -17,19 +13,7 @@ const DRAG_START = "DRAG_START";
 
 const KEYCODE_E = 69;
 const KEYCODE_F = 70;
-const KEYCODE_G = 71;
 const KEYCODE_W = 87;
-
-const KEYCODE_SPACE = 32;
-
-
-function distance (a, b) {
-    var sum = 0;
-    for (var i=0; i < a.length; i++){
-        sum += (a[i] - b[i])*(a[i] - b[i]);
-    }
-    return Math.sqrt(sum);
-}
 
 class Project {
     constructor (){
@@ -58,87 +42,6 @@ class Text {
         this.strokeWidth = 0;
         this.isVertical = true;
     }
-}
-
-
-class TextComponent extends Component {
-    constructor (props) {
-        super(props);
-        this.state = props.text;
-        this.keyPressed = props.keyPressed;
-        this.proxy = props.proxy;
-        this.dragState = NOT_DRAGGING;
-        this.oriPos = [0,0];
-        this.anchor = [0,0];
-    }
-
-
-    componentDidMount () {
-        document.body.addEventListener('mousemove', this.onMouseMove.bind(this));
-    }
-
-    componentWillMount () {
-        document.body.removeEventListener('mousemove', this.onMouseMove.bind(this));
-    }
-
-    onMouseDown (event) {
-        if (!this.keyPressed[KEYCODE_F]) {
-            this.anchor = [event.clientX, event.clientY];
-            this.oriPos = [].concat(this.state.pos);
-            this.dragState = DRAG_START;
-        }
-    }
-
-    onMouseMove (event) {
-        if (this.dragState == DRAG_START) { // / onclick
-            this.dragState = DRAG_TEXT;
-        }
-
-        if (this.dragState == DRAG_TEXT) {
-            let x = this.oriPos[0] + event.clientX - this.anchor[0];
-            let y = this.oriPos[1] + event.clientY - this.anchor[1];
-            this.setState({pos:[x,y]});
-        }
-    }
-
-    onMouseUp (event) {
-        if (this.dragState == DRAG_START) { // onclick
-            this.proxy.trigger("SelectText", this.state);
-            this.proxy.clearSubscribes("UpdateText");
-            this.proxy.subscribe("UpdateText", this.setState.bind(this));
-        }
-        this.dragState = DRAG_NOTHING;
-    }
-
-    render () {
-        let tspans = [];
-        let writtingMode = "";
-
-        if (this.state.isVertical) {
-            this.state.text.split("\n").forEach( (line, index) => {
-                let dy = line.length - line.trim().length;
-                tspans.push(<tspan y={this.state.pos[1] + dy*this.state.fontSize*0.1} dx={-index * this.state.fontSize}>{line.trim()}</tspan>)
-            })
-            writtingMode = "tb";
-        } else {
-            this.state.text.split("\n").forEach( (line, index) => {
-                let dx = line.length - line.trim().length;
-                tspans.push(<tspan x={this.state.pos[0] + dx*this.state.fontSize*0.1} dy={index * this.state.fontSize}>{line.trim()}</tspan>)
-            })
-        }
-
-        return (
-                <text style={{writingMode:writtingMode}} alignmentBaseline="hanging"
-                       x={this.state.pos[0]} y={this.state.pos[1]}
-                      fontSize={this.state.fontSize} fontFamily={this.state.fontStyle} strokeWidth={this.state.strokeWidth}
-                      stroke="#ffffff" fill="#000000"
-                      onMouseDown={this.onMouseDown.bind(this)}  onMouseUp={this.onMouseUp.bind(this)}
-                >
-                    {tspans}
-                </text>
-        )
-    }
-
 }
 
 class Rect {
@@ -179,7 +82,7 @@ class EventProxy {
     }
 }
 
-const proxy = new EventProxy();
+
 
 
 class App extends Component {
@@ -402,6 +305,87 @@ class InteractiveEditor extends Component {
             </div>
         )
     }
+}
+
+
+class TextComponent extends Component {
+    constructor (props) {
+        super(props);
+        this.state = props.text;
+        this.keyPressed = props.keyPressed;
+        this.proxy = props.proxy;
+        this.dragState = NOT_DRAGGING;
+        this.oriPos = [0,0];
+        this.anchor = [0,0];
+    }
+
+
+    componentDidMount () {
+        document.body.addEventListener('mousemove', this.onMouseMove.bind(this));
+    }
+
+    componentWillMount () {
+        document.body.removeEventListener('mousemove', this.onMouseMove.bind(this));
+    }
+
+    onMouseDown (event) {
+        if (!this.keyPressed[KEYCODE_F]) {
+            this.anchor = [event.clientX, event.clientY];
+            this.oriPos = [].concat(this.state.pos);
+            this.dragState = DRAG_START;
+        }
+    }
+
+    onMouseMove (event) {
+        if (this.dragState == DRAG_START) { // / onclick
+            this.dragState = DRAG_TEXT;
+        }
+
+        if (this.dragState == DRAG_TEXT) {
+            let x = this.oriPos[0] + event.clientX - this.anchor[0];
+            let y = this.oriPos[1] + event.clientY - this.anchor[1];
+            this.setState({pos:[x,y]});
+        }
+    }
+
+    onMouseUp (event) {
+        if (this.dragState == DRAG_START) { // onclick
+            this.proxy.trigger("SelectText", this.state);
+            this.proxy.clearSubscribes("UpdateText");
+            this.proxy.subscribe("UpdateText", this.setState.bind(this));
+        }
+        this.dragState = DRAG_NOTHING;
+    }
+
+    render () {
+        let tspans = [];
+        let writtingMode = "";
+
+        if (this.state.isVertical) {
+            this.state.text.split("\n").forEach( (line, index) => {
+                let dy = line.length - line.trim().length;
+                tspans.push(<tspan y={this.state.pos[1] + dy*this.state.fontSize*0.1} dx={-index * this.state.fontSize}>{line.trim()}</tspan>)
+            })
+            writtingMode = "tb";
+        } else {
+            this.state.text.split("\n").forEach( (line, index) => {
+                let dx = line.length - line.trim().length;
+                tspans.push(<tspan x={this.state.pos[0] + dx*this.state.fontSize*0.1} dy={index * this.state.fontSize}>{line.trim()}</tspan>)
+            })
+        }
+
+        return (
+            <text style={{writingMode:writtingMode}} alignmentBaseline="hanging"
+                  x={this.state.pos[0]} y={this.state.pos[1]}
+                  fontSize={this.state.fontSize} fontFamily={this.state.fontStyle} strokeWidth={this.state.strokeWidth}
+                  stroke="#ffffff" fill="#000000"
+                  onMouseDown={this.onMouseDown.bind(this)}  onMouseUp={this.onMouseUp.bind(this)}
+            >
+                {tspans}
+            </text>
+        )
+    }
+
 }
 
 
