@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-import {throttle} from 'throttle-debounce';
+import { Editor, Plain } from "slate";
+
 
 import './App.css';
 
@@ -54,7 +55,7 @@ class Text {
         this.fontSize = 30;
         this.fontStyle = "serif";
 
-        this.strokeWidth = 2;
+        this.strokeWidth = 0;
         this.isVertical = true;
     }
 }
@@ -65,10 +66,12 @@ class TextComponent extends Component {
         super(props);
         this.state = props.text;
         this.keyPressed = props.keyPressed;
+        this.proxy = props.proxy;
         this.dragState = NOT_DRAGGING;
         this.oriPos = [0,0];
         this.anchor = [0,0];
     }
+
 
     componentDidMount () {
         document.body.addEventListener('mousemove', this.onMouseMove.bind(this));
@@ -79,9 +82,11 @@ class TextComponent extends Component {
     }
 
     onMouseDown (event) {
-        this.anchor = [event.clientX, event.clientY];
-        this.oriPos = [].concat(this.state.pos);
-        this.dragState = DRAG_START;
+        if (!this.keyPressed[KEYCODE_F]) {
+            this.anchor = [event.clientX, event.clientY];
+            this.oriPos = [].concat(this.state.pos);
+            this.dragState = DRAG_START;
+        }
     }
 
     onMouseMove (event) {
@@ -92,13 +97,15 @@ class TextComponent extends Component {
         if (this.dragState == DRAG_TEXT) {
             let x = this.oriPos[0] + event.clientX - this.anchor[0];
             let y = this.oriPos[1] + event.clientY - this.anchor[1];
-            this.setState({pos: [x, y]});
+            this.setState({pos:[x,y]});
         }
     }
 
     onMouseUp (event) {
         if (this.dragState == DRAG_START) { // onclick
-            // listen to editor
+            this.proxy.trigger("SelectText", this.state);
+            this.proxy.clearSubscribes("UpdateText");
+            this.proxy.subscribe("UpdateText", this.setState.bind(this));
         }
         this.dragState = DRAG_NOTHING;
     }
@@ -110,22 +117,20 @@ class TextComponent extends Component {
         if (this.state.isVertical) {
             this.state.text.split("\n").forEach( (line, index) => {
                 let dy = line.length - line.trim().length;
-                console.log([line.length , line.trim().length])
                 tspans.push(<tspan y={this.state.pos[1] + dy*this.state.fontSize*0.1} dx={-index * this.state.fontSize}>{line.trim()}</tspan>)
             })
             writtingMode = "tb";
         } else {
             this.state.text.split("\n").forEach( (line, index) => {
                 let dx = line.length - line.trim().length;
-                console.log([line.length , line.trim().length])
                 tspans.push(<tspan x={this.state.pos[0] + dx*this.state.fontSize*0.1} dy={index * this.state.fontSize}>{line.trim()}</tspan>)
             })
         }
 
         return (
-                <text style={{writingMode:writtingMode}} alignment-baseline="hanging"
+                <text style={{writingMode:writtingMode}} alignmentBaseline="hanging"
                        x={this.state.pos[0]} y={this.state.pos[1]}
-                      fontSize={this.state.fontSize} fontFamile={this.state.fontStyle} strokeWidth={this.state.strokeWidth}
+                      fontSize={this.state.fontSize} fontFamily={this.state.fontStyle} strokeWidth={this.state.strokeWidth}
                       stroke="#ffffff" fill="#000000"
                       onMouseDown={this.onMouseDown.bind(this)}  onMouseUp={this.onMouseUp.bind(this)}
                 >
@@ -163,7 +168,7 @@ class EventProxy {
     }
 
     clearSubscribes (event) {
-        this.events.event = [];
+        this.events[event] = [];
     }
 
     trigger (event, msg) {
@@ -201,31 +206,29 @@ class App extends Component {
 class InteractiveEditor extends Component {
     constructor(props) {
         super(props);
-        this.state = {project:props.project};
 
+        this.project = props.project;
 
         const page = new Page();
         const demo_img = new Image();
         demo_img.src = testimg;
         page.image = demo_img;
 
-        this.page = page;
-
+        this.state = page;
         // for interactive component
         this.drag = {};
         this.drag.state = "";
         this.drag.item = null;
         this.drag.startPos = null;
 
-        this.state.texts = this.page.texts;
-
         this.keyPressed = {};
 
         this.hidden = false;
+
     }
 
     componentDidMount() {
-        this.state.project.proxy.subscribe("SelectImg", this.switchToPage.bind(this));
+        this.project.proxy.subscribe("SelectImg", this.switchToPage.bind(this));
 
         this.ctxes = {};
         this.ctxes.base = document.getElementById("BaseCanvas").getContext("2d");
@@ -233,12 +236,22 @@ class InteractiveEditor extends Component {
 
         this.textSvg = document.getElementById("TextSvg");
 
+
         this.loadDemoImage();
         this.registerListeners();
+        this.resizeCanvases();
+        this.refreshAllCanvases();
+    }
+
+    componentWillMount () {
+        const model = this;
+        document.body.removeEventListener('keydown', model.onKeyDown.bind(model));
+        document.body.removeEventListener('keyup', model.onKeyUp.bind(model));
+        this.project.proxy.clearSubscribes("SelectImg");
     }
 
     loadDemoImage() {
-        this.page.image.onload = () => {this.resizeCanvases(); this.refreshAllCanvases();};
+        this.state.image.onload = () => {this.resizeCanvases(); this.refreshAllCanvases();};
     }
 
     registerListeners () {
@@ -247,12 +260,21 @@ class InteractiveEditor extends Component {
         document.body.addEventListener('keyup', model.onKeyUp.bind(model));
     }
 
+    switchToPage (page) {
+        this.state = page;
+        this.forceUpdate(()=>{
+            this.resizeCanvases();
+            this.refreshAllCanvases();
+        });
+    }
+
     onKeyDown (event) {
         this.keyPressed[event.keyCode] = true;
 
         if (event.keyCode === KEYCODE_W && !this.hidden) {
             this.hidden = true;
             this.clearRectCanvas();
+            this.textSvg.setAttribute("visibility","hidden");
         }
     }
 
@@ -262,22 +284,17 @@ class InteractiveEditor extends Component {
         if (event.keyCode === KEYCODE_W && this.hidden) {
             this.hidden = false;
             this.renderRectCanvas();
+            this.textSvg.setAttribute("visibility","visible");
         }
-    }
-
-    switchToPage (page) {
-        this.page = page;
-        this.resizeCanvases();
-        this.refreshAllCanvases();
     }
 
     resizeCanvases () {
         for(let ctx in this.ctxes) {
-            this.ctxes[ctx].canvas.width = this.page.image.width;
-            this.ctxes[ctx].canvas.height = this.page.image.height;
+            this.ctxes[ctx].canvas.width = this.state.image.width;
+            this.ctxes[ctx].canvas.height = this.state.image.height;
         }
-        this.textSvg.setAttribute("width", this.page.image.width);
-        this.textSvg.setAttribute("height", this.page.image.height);
+        this.textSvg.setAttribute("width", this.state.image.width);
+        this.textSvg.setAttribute("height", this.state.image.height);
     }
 
     refreshAllCanvases () {
@@ -286,7 +303,7 @@ class InteractiveEditor extends Component {
     }
 
     refreshBaseCanvas () {
-        this.ctxes.base.drawImage(this.page.image, 0, 0);
+        this.ctxes.base.drawImage(this.state.image, 0, 0);
     }
 
     refreshRectCanvas () {
@@ -301,21 +318,28 @@ class InteractiveEditor extends Component {
     }
 
     renderRectCanvas () {
-        this.page.rects.map((x) => {x.renderOnContext(this.ctxes.rect)});
+        this.state.rects.map((x) => {x.renderOnContext(this.ctxes.rect)});
+    }
+    
+    getScaledPosition (event) {
+        let scale = this.ctxes.base.canvas.width /this.ctxes.base.canvas.offsetWidth;
+        let x = Math.round(event.nativeEvent.offsetX * scale);
+        let y = Math.round(event.nativeEvent.offsetY * scale);
+        return [x,y]
     }
 
-    onClick(event) {
+    onClick (event) {
         if (this.keyPressed[KEYCODE_E]) {
-            const pos = [event.nativeEvent.offsetX, event.nativeEvent.offsetY];
+            const pos = this.getScaledPosition(event);
             let text = new Text(pos);
-            this.page.texts.push(text);
-            this.setState({texts : this.state.texts.concat([text])});
 
+            this.state.texts.push(text);
+            this.forceUpdate();
         }
     }
 
     onMouseDown(event) {
-        const pos = [event.nativeEvent.offsetX, event.nativeEvent.offsetY];
+        const pos = this.getScaledPosition(event);
 
         if (this.keyPressed[KEYCODE_F]) {
             this.rectDragStart(pos);
@@ -327,7 +351,7 @@ class InteractiveEditor extends Component {
 
     rectDragStart (pos) {
         const newRect = new Rect(pos, [].concat(pos)); // copy a new object
-        this.page.rects.push(newRect);
+        this.state.rects.push(newRect);
         this.drag.state = DRAG_RECT;
         this.drag.item = newRect;
     }
@@ -338,15 +362,12 @@ class InteractiveEditor extends Component {
             return;
         }
 
-        const pos = [event.nativeEvent.offsetX, event.nativeEvent.offsetY];
+        const pos = this.getScaledPosition(event);
         if ( pos.includes(0)) return; // the last ondrag before ondrag end will return negative value
         switch (this.drag.state){
             case DRAG_RECT:
                 this.rectDragUpdate(pos);
                 break;
-            // case DRAG_TEXT:
-            //     this.textDragUpdate(pos);
-            //     break;
             default:
         }
     }
@@ -362,14 +383,17 @@ class InteractiveEditor extends Component {
 
     render() {
         let texts = [];
-        for (let text of this.page.texts) {
-            texts.push(<TextComponent keyPressed={this.keyPressed} text={text}/>)
-        }
+        this.state.texts.forEach((text, index) =>{
+            texts.push(<TextComponent keyPressed={this.keyPressed} proxy={this.project.proxy}
+                                      text={text} key={this.state.key + "," + index}/>)
+        });
+
         return (
-            <div style={{position: "relative", overflow: "auto", width: "100%"}} >
-                <canvas id="BaseCanvas"  style={{maxWidth: "100%", position: "absolute", zIndex: 1}}/>
-                <canvas id="RectCanvas" style={{maxWidth: "100%", position: "absolute", zIndex: 2}}/>
-                <svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="TextSvg"  style={{position: "absolute", zIndex: 7}}
+            <div style={{position: "relative", overflow: "scroll", width: "100%"}} >
+                <canvas id="BaseCanvas"  style={{position: "absolute", zIndex: 1, float:"left"}}/>
+                <canvas id="RectCanvas" style={{position: "absolute", zIndex: 2, float:"left"}}/>
+                <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
+                     id="TextSvg" style={{position: "absolute", zIndex: 7, float:"left"}}
                      onMouseUp={this.onMouseUp.bind(this)} onMouseMove={this.onMouseMove.bind(this)}
                      onMouseDown ={this.onMouseDown.bind(this)} onClick={this.onClick.bind(this)}>
                     {texts}
@@ -380,31 +404,60 @@ class InteractiveEditor extends Component {
     }
 }
 
+
 class TextEditorComponent extends Component {
     constructor (props) {
         super(props);
-        this.project = props.project;
-        this.state = new Text([0,0]);
+        this.proxy = props.project.proxy;
+        let demoText = new Text([0,0]);
+        this.state = {
+            text: demoText,
+            editorState : Plain.deserialize(demoText.text)
+        };
     }
 
     componentDidMount () {
-        var fontSize = document.getElementById("fontSize");
-        for (let i=0;i<100;i++) {
-            let opt = document.createElement("option");
-            opt.value=i;
-            opt.innerHTML=i;
-            fontSize.appendChild(opt);
-        }
+        this.proxy.subscribe("SelectText", this.switchToText.bind(this));
     }
 
+    switchToText (text) {
+        this.setState({
+            text : text,
+            editorState : Plain.deserialize(text.text)
+        });
+        this.forceUpdate();
+    }
+
+    updateFontSize (event) {
+        let update = {fontSize:event.target.value};
+        this.proxy.trigger("UpdateText", update);
+
+        this.state.text.fontSize = event.target.value;
+        this.forceUpdate();
+    }
+
+    updateText (editorState) {
+        let updatedText = Plain.serialize(editorState);
+        let update = {text:updatedText};
+        this.proxy.trigger("UpdateText", update);
+        this.state.editorState = editorState;
+        this.forceUpdate();
+    }
+
+
     render() {
+        let sss = 333;
         return (
             <div style={{position:"absolute", backgroundColor:"gray", right: 15, top:10, zIndex:10}}>
                 <label>Size</label><p/>
-                <select id="fontSize" > </select><p/>
+                <input type="range" min="1" max="50" step="1"
+                       value={this.state.text.fontSize} onChange={this.updateFontSize.bind(this)} /><p/>
 
                 <label>Content</label><p/>
-                <textarea rows={10} cols={30} contentEditable={true}> fsafdsaf </textarea>
+                <Editor stlye={{backgroundColor:"#ffffff"}}
+                        placeholder="Enter some text..."
+                        onChange={editorState => this.updateText(editorState)}
+                        state={this.state.editorState}/>
             </div>
         )
     }
