@@ -344,15 +344,23 @@ class TextComponent extends Component {
         if (this.dragState == DRAG_TEXT) {
             let x = this.oriPos[0] + event.clientX - this.anchor[0];
             let y = this.oriPos[1] + event.clientY - this.anchor[1];
-            this.setState({pos:[x,y]});
+            this.state.pos = [x,y];
+            this.forceUpdate();
         }
+    }
+
+    update (newState) {
+        for (let prop in newState) {
+            this.state[prop] = newState[prop];
+        }
+        this.forceUpdate();
     }
 
     onMouseUp (event) {
         if (this.dragState == DRAG_START) { // onclick
             this.proxy.trigger("SelectText", this.state);
             this.proxy.clearSubscribes("UpdateText");
-            this.proxy.subscribe("UpdateText", this.setState.bind(this));
+            this.proxy.subscribe("UpdateText", this.update.bind(this));
         }
         this.dragState = DRAG_NOTHING;
     }
