@@ -20,7 +20,9 @@ const KEYCODE_S = 83;
 
 class Project {
     constructor (){
-        this.name = "";
+        this.name = "defaultname";
+        this.image = null;
+        this.svgSrc = "";
         this.pages = [];
         this.proxy = new EventProxy();
     }
@@ -29,6 +31,8 @@ class Project {
 class Page {
     constructor (src){
         this.src = src;
+        this.image = null;
+        this.filename = "";
         this.rects = []; // rects that cover original texts
         this.texts = [];
     }
@@ -138,6 +142,7 @@ class InteractiveEditor extends Component {
 
     componentDidMount() {
         this.project.proxy.subscribe("SelectImg", this.switchToPage.bind(this));
+        this.project.proxy.subscribe("ExportFile", this.saveSvgSrc.bind(this));
 
         this.ctxes = {};
         this.ctxes.base = document.getElementById("BaseCanvas").getContext("2d");
@@ -170,6 +175,7 @@ class InteractiveEditor extends Component {
     }
 
     switchToPage (page) {
+        this.state.svgSrc = this.getSvgSrc();
         this.state = page;
         this.forceUpdate(()=>{
             this.resizeCanvases();
@@ -189,7 +195,7 @@ class InteractiveEditor extends Component {
 
     onKeyUp (event) {
         if (event.keyCode == KEYCODE_S) {
-            this.exportImage();
+            this.exportSingleImage();
         }
 
         this.keyPressed[event.keyCode] = false;
@@ -285,45 +291,42 @@ class InteractiveEditor extends Component {
         this.drag = {state : ""};
     }
 
-    exportImage() {
-        const [w, h] = [this.state.image.width, this.state.image.height];
+    saveSvgSrc () {
+        this.state.svgSrc = this.getSvgSrc();
+    }
 
+    getSvgSrc () {
+        let svgString = new XMLSerializer().serializeToString(this.textSvg);
+        return 'data:image/svg+xml;base64,'+ window.btoa(unescape(encodeURIComponent(svgString)));
+    }
+
+    exportSingleImage () {
         let outputCanvas = document.createElement("canvas");
-        outputCanvas.width = w;
-        outputCanvas.height = h;
-
         let outputCtx = outputCanvas.getContext("2d");
 
-        let svgString = new XMLSerializer().serializeToString(this.textSvg);
-        let svgSrc = 'data:image/svg+xml;base64,'+ window.btoa(unescape(encodeURIComponent(svgString)));
+        outputCanvas.width = this.state.image.width;
+        outputCanvas.height = this.state.image.height;
+
 
         let svgImage = new Image();
-        svgImage.src = svgSrc;
-        console.log(svgImage.complete);
+        svgImage.src = this.getSvgSrc()
+
         svgImage.onload = ()=>{
-            console.log(4324234);
             outputCtx.drawImage(this.ctxes.base.canvas, 0, 0);
             outputCtx.drawImage(this.ctxes.rect.canvas, 0, 0);
             outputCtx.drawImage(svgImage, 0, 0);
 
+            let dt = outputCanvas.toDataURL('image/png');
+            /* Change MIME type to trick the browser to downlaod the file instead of displaying it */
+            dt = dt.replace(/^data:image\/[^;]*/, 'data:application/octet-stream');
+            /* In addition to <a>'s "download" attribute, you can define HTTP-style headers */
+            dt = dt.replace(/^data:application\/octet-stream/, 'data:application/octet-stream;headers=Content-Disposition: attachment; filename=foobar.png ');
 
-            var zip = new JSZip();
-            var img = zip.folder("images");
-            var savable = new Image();
-            savable.src = outputCanvas.toDataURL();
-            img.file("smile.gif", savable.src.substr(savable.src.indexOf(',')+1), {base64: true});
-            zip.generateAsync({type:"blob"})
-                .then(function(content) {
-                    FileSaver.saveAs(content, "down.zip");
-
-                });
+            let link = document.createElement('a');
+            link.href = dt;
+            link.download = "filename";
+            link.click();
         };
-
-
-
-
-        // before switch page. export svg string and save in page
-        // before export all pages, export current page's svg
     }
 
     render() {
@@ -510,24 +513,62 @@ class GalleryComponent extends React.Component {
     uploadImages(event) {
         const files = event.target.files; //FileList object
 
-        const loadImage = (event) => {
-
-            const page = new Page();
-            page.image = new Image();
-            page.image.src = event.target.result;
-
-            page.key = this.project.pages.length;
-            page.image.crossOrigin = "Anonymous";
-
-            this.project.pages.push(page);
-            this.forceUpdate();
-        };
-
         for(let file of files)
         {
             const picReader = new FileReader();
-            picReader.addEventListener("load", loadImage.bind(this));
+
+            picReader.onload = ((filename) => // bind filename to onload funciton using closure
+            {
+                return ((event) => {
+                    const page = new Page();
+                    page.filename = filename;
+                    page.image = new Image();
+                    page.image.src = event.target.result;
+
+                    page.key = this.project.pages.length;
+                    page.image.crossOrigin = "Anonymous";
+
+                    this.project.pages.push(page);
+                    this.forceUpdate();
+                })
+            })(file.name);
+
             picReader.readAsDataURL(file);
+        }
+    }
+
+    exportMultiplePages () {
+        this.project.proxy.trigger("ExportFile", {});
+        var zip = new JSZip();
+        var img = zip.folder("images");
+        let countDown = this.project.pages.length;
+        for (let page of this.project.pages) {
+            let svgImage = new Image();
+            svgImage.src = page.svgSrc;
+
+            svgImage.onload = ()=>{
+                let outputCanvas = document.createElement("canvas");
+                outputCanvas.width = page.image.width;
+                outputCanvas.height = page.image.height;
+
+                let outputCtx = outputCanvas.getContext("2d");
+
+                outputCtx.drawImage(page.image, 0, 0);
+                page.rects.map((rect)=>rect.renderOnContext(outputCtx));
+                outputCtx.drawImage(svgImage, 0, 0)
+
+                let savable = new Image();
+                savable.src = outputCanvas.toDataURL();
+                img.file(page.filename, savable.src.substr(savable.src.indexOf(',')+1), {base64: true});
+
+                countDown  = countDown - 1;
+                if (countDown == 0) {
+                    zip.generateAsync({type:"blob"})
+                        .then(function(content) {
+                            FileSaver.saveAs(content, "download.zip");
+                        });
+                }
+            }
         }
     }
 
@@ -535,14 +576,14 @@ class GalleryComponent extends React.Component {
         return (
             this.project.pages.map(
                 (page) => {
-                    return ( <ThumbnailComponent page={page} key={page.key} proxy={this.project.proxy}/>)
+                    return (
+                        <div>
+                            <ThumbnailComponent page={page} key={page.key} proxy={this.project.proxy}/>
+                            <label>{page.filename}</label>
+                        </div>)
                 }
             )
         )
-    }
-
-    exportPages () {
-        console.log("this is a todo LOL");
     }
 
     render() {
@@ -555,7 +596,7 @@ class GalleryComponent extends React.Component {
                 </label>
 
                 <label for="">
-                    <button className="button" onClick={this.exportPages.bind(this)}>导出全部图片</button>
+                    <button className="button" onClick={this.exportMultiplePages.bind(this)}>导出全部图片</button>
                 </label>
             </div>
         )
