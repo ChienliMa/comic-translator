@@ -1,3 +1,27 @@
+/*---- public css ----*/
+html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}
+body{font-family:"Hiragino Sans GB",Helvetica,"Microsoft YaHei",SimHei,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+
+article,aside,details,figcaption,figure,footer,header,hgroup,main,nav,section,summary{display:block}
+h1{font-size:2em;}
+img{border:0}
+button,input,optgroup,select,textarea{color:inherit;font:inherit;margin:0}
+button{overflow:visible}
+button,select{text-transform:none}
+button,html input[type="button"],input[type="reset"],input[type="submit"]{-webkit-appearance:button;cursor:pointer}
+button[disabled],html input[disabled]{cursor:default}
+button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}
+input{line-height:normal}
+input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}
+input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{height:auto}
+input[type="search"]{-webkit-appearance:textfield;-moz-box-sizing:content-box;-webkit-box-sizing:content-box;box-sizing:content-box}
+input[type="search"]::-webkit-search-cancel-button,input[type="search"]::-webkit-search-decoration{-webkit-appearance:none}
+input::-ms-clear{display:none;}
+body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,textarea,p,
+blockquote,th,td{margin:0;padding:0;}
+a{background:transparent;text-decoration:none;cursor: pointer;}
+a:link,a:active,a:hover{outline:0;}
+.hidden{display:none !important;}
 .App {
   text-align: center;
 }
@@ -16,6 +40,108 @@
 
 .App-intro {
   font-size: large;
+}
+
+.container {
+  display: -webkit-flex;
+  display: -moz-flex;
+  display: -ms-flex;
+  display: -o-flex;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+}
+.preview-bar {
+  width: 20%;
+  flex-direction: column;
+  overflow: scroll;
+  background-color: #f6f6f6;
+}
+.preview-bar img {
+  max-width: 80%;
+  height: auto;
+  display: block;
+  margin: 10%;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 0 8px 0 rgba(0,0,0,.3);
+}
+.preview-bar .button {
+  display: block;
+  width: 80%;
+  height: 40px;
+  margin: 20px auto;
+  background-color: #0082e5;
+  text-align: center;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 40px;
+  box-shadow: 0 0 8px 0 rgba(0,0,0,.3);
+  cursor: pointer;
+}
+
+.editor-container {
+  display: -webkit-flex;
+  display: -moz-flex;
+  display: -ms-flex;
+  display: -o-flex;
+  display: flex;
+  flex:1;
+  background-color: #fff;
+  overflow-y: scroll;
+  flex-grow: 3;
+  box-shadow: 0 0 20px 0 rgba(0,0,0,.1);
+}
+.editor-div {
+  position: relative;
+  overflow-y: scroll;
+  width: 100%;
+}
+.canvas-base,.canvas-rect,.canvas-text {
+  position: absolute;
+  left: 0;
+}
+.text-controller {
+  position: fixed;
+  background-color: #fff;
+  right: 15px;
+  top: 15px;
+  width: 360px;
+  z-index: 10;
+  padding: 20px;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  box-shadow: 0 0 20px 0 rgba(0,0,0,.2);
+}
+.text-controller input {
+  flex: 1;
+}
+.text-controller label{
+  display: block;
+  width: 120px;
+  color: #999;
+  font-size: 20px;
+  line-height: 24px;
+  margin-right: 16px;
+  text-align: left;
+}
+.item {
+  display: -webkit-flex;
+  display: -moz-flex;
+  display: -ms-flex;
+  display: -o-flex;
+  display: flex;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+}
+.item:last-child{
+  border: 0;
+  margin: 0;
 }
 
 @keyframes App-logo-spin {

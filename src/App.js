@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
 import { Editor, Plain } from "slate";
-
+import * as JSZip from 'jszip';
+import  * as FileSaver from 'file-saver';
 import './App.css';
+
 
 const testimg = require("./testimg.jpeg");
 
@@ -14,6 +16,7 @@ const DRAG_START = "DRAG_START";
 const KEYCODE_E = 69;
 const KEYCODE_F = 70;
 const KEYCODE_W = 87;
+const KEYCODE_S = 83;
 
 class Project {
     constructor (){
@@ -34,7 +37,7 @@ class Page {
 class Text {
     constructor (pos) {
         this.pos = pos;
-        this.text = "你好 \n     哈哈";
+        this.text = "哈哈    \n   你好 ";
 
         this.fontSize = 30;
         this.fontStyle = "serif";
@@ -95,9 +98,12 @@ class App extends Component {
   render() {
     return (
       <div className="App">
-          <div style={{display: "flex", width: "100%", height: "100%", position: "absolute"}}>
+          <script type="text/javascript" src="http://canvg.github.io/canvg/rgbcolor.js"></script>
+          <script type="text/javascript" src="http://canvg.github.io/canvg/StackBlur.js"></script>
+          <script type="text/javascript" src="http://canvg.github.io/canvg/canvg.js"></script>
+          <div className="container">
               <GalleryComponent project={this.state}/>
-              <div id="EditorContainer" style={{display:"flex", width: "80%", backgroundColor:"#FF0000", flexGrow: 3, overflow:"scroll"}}>
+              <div id="EditorContainer" className="editor-container">
                   <InteractiveEditor project={this.state}/>
               </div>
           </div>
@@ -182,6 +188,10 @@ class InteractiveEditor extends Component {
     }
 
     onKeyUp (event) {
+        if (event.keyCode == KEYCODE_S) {
+            this.exportImage();
+        }
+
         this.keyPressed[event.keyCode] = false;
 
         if (event.keyCode === KEYCODE_W && this.hidden) {
@@ -214,7 +224,6 @@ class InteractiveEditor extends Component {
         this.renderRectCanvas();
     }
 
-
     clearRectCanvas () {
         const canvas = this.ctxes.rect.canvas;
         this.ctxes.rect.clearRect(0,0,canvas.width,canvas.height);
@@ -231,24 +240,17 @@ class InteractiveEditor extends Component {
         return [x,y]
     }
 
-    onClick (event) {
-        if (this.keyPressed[KEYCODE_E]) {
-            const pos = this.getScaledPosition(event);
-            let text = new Text(pos);
-
-            this.state.texts.push(text);
-            this.forceUpdate();
-        }
+    onDoubleClick (event) {
+        const pos = this.getScaledPosition(event);
+        let text = new Text(pos);
+        this.state.texts.push(text);
+        this.forceUpdate();
     }
 
     onMouseDown(event) {
         const pos = this.getScaledPosition(event);
-
         if (this.keyPressed[KEYCODE_F]) {
             this.rectDragStart(pos);
-        } else if (this.keyPressed[KEYCODE_E]) {
-            // this.textDragStart(pos);
-            // this.drag.state = DRAG_TEXT;
         }
     }
 
@@ -266,7 +268,6 @@ class InteractiveEditor extends Component {
         }
 
         const pos = this.getScaledPosition(event);
-        if ( pos.includes(0)) return; // the last ondrag before ondrag end will return negative value
         switch (this.drag.state){
             case DRAG_RECT:
                 this.rectDragUpdate(pos);
@@ -284,6 +285,47 @@ class InteractiveEditor extends Component {
         this.drag = {state : ""};
     }
 
+    exportImage() {
+        const [w, h] = [this.state.image.width, this.state.image.height];
+
+        let outputCanvas = document.createElement("canvas");
+        outputCanvas.width = w;
+        outputCanvas.height = h;
+
+        let outputCtx = outputCanvas.getContext("2d");
+
+        let svgString = new XMLSerializer().serializeToString(this.textSvg);
+        let svgSrc = 'data:image/svg+xml;base64,'+ window.btoa(unescape(encodeURIComponent(svgString)));
+
+        let svgImage = new Image();
+        svgImage.src = svgSrc;
+        console.log(svgImage.complete);
+        svgImage.onload = ()=>{
+            console.log(4324234);
+            outputCtx.drawImage(this.ctxes.base.canvas, 0, 0);
+            outputCtx.drawImage(this.ctxes.rect.canvas, 0, 0);
+            outputCtx.drawImage(svgImage, 0, 0);
+
+
+            var zip = new JSZip();
+            var img = zip.folder("images");
+            var savable = new Image();
+            savable.src = outputCanvas.toDataURL();
+            img.file("smile.gif", savable.src.substr(savable.src.indexOf(',')+1), {base64: true});
+            zip.generateAsync({type:"blob"})
+                .then(function(content) {
+                    FileSaver.saveAs(content, "down.zip");
+
+                });
+        };
+
+
+
+
+        // before switch page. export svg string and save in page
+        // before export all pages, export current page's svg
+    }
+
     render() {
         let texts = [];
         this.state.texts.forEach((text, index) =>{
@@ -292,13 +334,13 @@ class InteractiveEditor extends Component {
         });
 
         return (
-            <div style={{position: "relative", overflow: "scroll", width: "100%"}} >
-                <canvas id="BaseCanvas"  style={{position: "absolute", zIndex: 1, float:"left"}}/>
-                <canvas id="RectCanvas" style={{position: "absolute", zIndex: 2, float:"left"}}/>
+            <div className="editor-div">
+                <canvas id="BaseCanvas" className="canvas-base" style={{zIndex: 1}}/>
+                <canvas id="RectCanvas" className="canvas-rect" style={{zIndex: 2}}/>
                 <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
-                     id="TextSvg" style={{position: "absolute", zIndex: 7, float:"left"}}
+                     id="TextSvg" className="canvas-text" style={{zIndex: 7}}
                      onMouseUp={this.onMouseUp.bind(this)} onMouseMove={this.onMouseMove.bind(this)}
-                     onMouseDown ={this.onMouseDown.bind(this)} onClick={this.onClick.bind(this)}>
+                     onMouseDown ={this.onMouseDown.bind(this)} onDoubleClick={this.onDoubleClick.bind(this)}>
                     {texts}
                 </svg>
                 <TextEditorComponent id="TextEditor" project={this.project} />
@@ -372,7 +414,7 @@ class TextComponent extends Component {
         if (this.state.isVertical) {
             this.state.text.split("\n").forEach( (line, index) => {
                 let dy = line.length - line.trim().length;
-                tspans.push(<tspan y={this.state.pos[1] + dy*this.state.fontSize*0.1} dx={-this.state.fontSize}>{line.trim()}</tspan>)
+                tspans.push(<tspan y={this.state.pos[1] + dy*this.state.fontSize*0.1} dx={-1*this.state.fontSize}>{line.trim()}</tspan>)
             })
             writtingMode = "tb";
         } else {
@@ -440,16 +482,19 @@ class TextEditorComponent extends Component {
     render() {
         let sss = 333;
         return (
-            <div style={{position:"absolute", backgroundColor:"gray", right: 15, top:10, zIndex:10}}>
-                <label>Size</label><p/>
-                <input type="range" min="1" max="50" step="1"
-                       value={this.state.text.fontSize} onChange={this.updateFontSize.bind(this)} /><p/>
-
-                <label>Content</label><p/>
-                <Editor stlye={{backgroundColor:"#ffffff"}}
-                        placeholder="Enter some text..."
-                        onChange={editorState => this.updateText(editorState)}
-                        state={this.state.editorState}/>
+            <div className="text-controller">
+                <div className="item">
+                    <label>Size</label>
+                    <input type="range" min="1" max="50" step="1"
+                           value={this.state.text.fontSize} onChange={this.updateFontSize.bind(this)} />
+                </div>
+                <div className="item">
+                    <label>Content</label>
+                    <Editor stlye={{backgroundColor:"#f6f6f6"}}
+                            placeholder="Enter some text..."
+                            onChange={editorState => this.updateText(editorState)}
+                            state={this.state.editorState}/>
+                </div>
             </div>
         )
     }
@@ -459,7 +504,7 @@ class TextEditorComponent extends Component {
 class GalleryComponent extends React.Component {
     constructor(props) {
         super(props);
-        this.state = props.project;
+        this.project = props.project;
     }
 
     uploadImages(event) {
@@ -471,11 +516,11 @@ class GalleryComponent extends React.Component {
             page.image = new Image();
             page.image.src = event.target.result;
 
-            page.key = this.state.pages.length;
+            page.key = this.project.pages.length;
             page.image.crossOrigin = "Anonymous";
 
-            this.state.pages.push(page);
-            this.setState(this.state);
+            this.project.pages.push(page);
+            this.forceUpdate();
         };
 
         for(let file of files)
@@ -488,19 +533,30 @@ class GalleryComponent extends React.Component {
 
     renderThumbnails() {
         return (
-            this.state.pages.map(
+            this.project.pages.map(
                 (page) => {
-                    return ( <ThumbnailComponent page={page} key={page.key} proxy={this.state.proxy}/>)
+                    return ( <ThumbnailComponent page={page} key={page.key} proxy={this.project.proxy}/>)
                 }
             )
         )
     }
 
+    exportPages () {
+        console.log("this is a todo LOL");
+    }
+
     render() {
         return (
-            <div style={{width: "20%", display: "flex", flexDirection: "column", overflow:"scroll", backgroundColor:"#0000FF"}}>
+            <div className="preview-bar">
                 {this.renderThumbnails()}
-                <input id="fileId2" type="file" multiple="multiple" onChange={(e)=> this.uploadImages(e)}/>
+                <label for="">
+                    <p className="button">添加图片</p>
+                    <input id="fileId2" type="file" multiple="multiple" onChange={(e)=> this.uploadImages(e)} className="hidden"/>
+                </label>
+
+                <label for="">
+                    <button className="button" onClick={this.exportPages.bind(this)}>导出全部图片</button>
+                </label>
             </div>
         )
     }
@@ -521,7 +577,7 @@ class ThumbnailComponent extends Component {
     render () {
         return(
             <img src={this.page.image.src} onClick={this.onClick.bind(this)}
-                 style={{maxWidth:"100%", display:"block",float:"left"}}/>
+                 />
         )
     }
 }
