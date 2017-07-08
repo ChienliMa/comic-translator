@@ -41,7 +41,7 @@ class Page {
 class Text {
     constructor (pos) {
         this.pos = pos;
-        this.text = "哈哈    \n   你好 ";
+        this.text = "请输入文字";
 
         this.fontSize = 30;
         this.fontStyle = "serif";
@@ -141,7 +141,7 @@ class InteractiveEditor extends Component {
     }
 
     componentDidMount() {
-        this.project.proxy.subscribe("SelectImg", this.switchToPage.bind(this));
+        this.project.proxy.subscribe("SelectImg", this.bindToPage.bind(this));
         this.project.proxy.subscribe("ExportFile", this.saveSvgSrc.bind(this));
 
         this.ctxes = {};
@@ -174,7 +174,7 @@ class InteractiveEditor extends Component {
         document.body.addEventListener('keyup', model.onKeyUp.bind(model));
     }
 
-    switchToPage (page) {
+    bindToPage (page) {
         this.state.svgSrc = this.getSvgSrc();
         this.state = page;
         this.forceUpdate(()=>{
@@ -194,7 +194,7 @@ class InteractiveEditor extends Component {
     }
 
     onKeyUp (event) {
-        if (event.keyCode == KEYCODE_S) {
+        if (event.keyCode == KEYCODE_S && event.altKey) {
             this.exportSingleImage();
         }
 
@@ -454,10 +454,19 @@ class TextEditorComponent extends Component {
     }
 
     componentDidMount () {
-        this.proxy.subscribe("SelectText", this.switchToText.bind(this));
+        this.proxy.subscribe("SelectText", this.bindToText.bind(this));
+        this.proxy.subscribe("SelectImg", this.unbindText.bind(this)); // need to unbind text when context change
     }
 
-    switchToText (text) {
+    unbindText () {
+        let text = new Text();
+        this.setState({
+            text : text,
+            editorState : Plain.deserialize(text.text)
+        });
+    }
+
+    bindToText (text) {
         this.setState({
             text : text,
             editorState : Plain.deserialize(text.text)
