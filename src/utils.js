@@ -45,8 +45,8 @@ class Text {
         this.pos = pos;
         this.text = "请输入文字";
 
-        this.fontSize = 30;
-        this.fontStyle = "sansserif";
+        this.size = 30;
+        this.style= "sansserif";
 
         this.strokeWidth = 0;
         this.isVertical = true;

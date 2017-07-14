@@ -83,14 +83,14 @@ class TextComponent extends Component {
             this.state.text.split("\n").forEach( (line, index) => {
                 let dy = line.length - line.trim().length;
                 tspans.push(<tspan stroke="#ffffff"
-                                   y={y + dy*this.state.fontSize*0.1}
-                                   x={x - index*(this.state.fontSize + this.state.lineGap)}>{line.trim()}</tspan>)
+                                   y={y + dy*this.state.size*0.1}
+                                   x={x - index*(this.state.size + this.state.lineGap)}>{line.trim()}</tspan>)
             })
 
             this.state.text.split("\n").forEach( (line, index) => {
                 let dy = line.length - line.trim().length;
-                tspans.push(<tspan y={y + dy*this.state.fontSize*0.1}
-                                   x={x - index*(this.state.fontSize + this.state.lineGap)}>{line.trim()}</tspan>)
+                tspans.push(<tspan y={y + dy*this.state.size*0.1}
+                                   x={x - index*(this.state.size + this.state.lineGap)}>{line.trim()}</tspan>)
             })
             writtingMode = "tb";
         } else {
@@ -99,19 +99,19 @@ class TextComponent extends Component {
             this.state.text.split("\n").forEach( (line, index) => {
                 let dx = line.length - line.trim().length;
                 tspans.push(<tspan stroke="#ffffff"
-                                   x={x + dx*this.state.fontSize*0.1}
-                                   y={y + index*this.state.fontSize}>{line.trim()}</tspan>)
+                                   x={x + dx*this.state.size*0.1}
+                                   y={y + index*this.state.size}>{line.trim()}</tspan>)
             })
             this.state.text.split("\n").forEach( (line, index) => {
                 let dx = line.length - line.trim().length;
-                tspans.push(<tspan x={x + dx*this.state.fontSize*0.1}
-                                   y={y + index*this.state.fontSize}>{line.trim()}</tspan>)
+                tspans.push(<tspan x={x + dx*this.state.size*0.1}
+                                   y={y + index*this.state.size}>{line.trim()}</tspan>)
             })
         }
 
         let selectedTag = null;
         if (this.selected) {
-            selectedTag = <circle cx={x+0.5*this.state.fontSize} cy={y} r={this.state.fontSize*0.1} fill="red"></circle>;
+            selectedTag = <circle cx={x} cy={y-0.2*this.state.size} r={this.state.size*0.1} fill="red"></circle>;
         }
 
         return (
@@ -119,7 +119,7 @@ class TextComponent extends Component {
                 {selectedTag}
             <text style={{writingMode:writtingMode ,textOrientation: this.textOrientation}} alignmentBaseline="hanging"
                   x={x} y={y}
-                  fontSize={this.state.fontSize} fontFamily="sans-serif"
+                  fontSize={this.state.size} fontFamily="sans-serif"
 
                   strokeLinejoin="round"  strokeLinecap="round" strokeWidth={this.state.strokeWidth}
                   strokeMiterlimit={200} fill="#000000"

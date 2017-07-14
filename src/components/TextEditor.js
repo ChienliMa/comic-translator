@@ -64,8 +64,8 @@ class TextEditorComponent extends Component {
                 <div className="item">
                     <label>Size</label>
                     <input type="range" min="1" max="200" step="1"
-                           value={this.state.text.fontSize}
-                           onChange={(e)=>this.update({fontSize:e.target.value})} />
+                           value={this.state.text.size}
+                           onChange={(e)=>this.update({size:e.target.value})} />
                 </div>
 
                 <div className="item">
@@ -88,7 +88,6 @@ class TextEditorComponent extends Component {
                            value={this.state.text.lineGap}
                            onChange={(e)=>this.update({lineGap:e.target.value})}/>
                 </div>
-
 
 
                 <div className="item" style={{visibility:(this.multipleSelected||this.hidden)?"hidden":"visible"}}>
