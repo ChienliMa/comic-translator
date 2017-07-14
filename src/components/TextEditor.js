@@ -11,14 +11,17 @@ class TextEditorComponent extends Component {
             text: demoText,
             editorState : Plain.deserialize(demoText.text)
         };
+
+        this.hidden = true;
+        this.multipleSelected = false;
     }
 
     componentDidMount () {
-        this.proxy.subscribe("SelectText", this.bindToText.bind(this));
-        this.proxy.subscribe("SelectImg", this.unbindText.bind(this)); // need to unbind text when context change
+        this.proxy.subscribe("SelectText", this.selectText.bind(this));
+        this.proxy.subscribe("SelectImg", this.selectPage.bind(this)); // need to unbind text when context change
     }
 
-    unbindText () {
+    selectPage () {
         let text = new Text();
         this.setState({
             text : text,
@@ -26,44 +29,23 @@ class TextEditorComponent extends Component {
         });
     }
 
-    bindToText (text) {
-        this.setState({
-            text : text,
-            editorState : Plain.deserialize(text.text)
-        });
+    selectText (text) {
+        if (text != null) {
+            this.setState({
+                text : text,
+                editorState : Plain.deserialize(text.text)
+            });
+            this.hidden = false;
+        } else {
+            this.hidden = true;
+        }
+
         this.forceUpdate();
     }
 
-    updateFontSize (event) {
-        let update = {fontSize:event.target.value};
+
+    update (update) {
         this.proxy.trigger("UpdateText", update);
-
-        this.state.text.fontSize = event.target.value;
-        this.forceUpdate();
-    }
-
-
-    updateRotate (event) {
-        let update = {rotate:event.target.value};
-        this.proxy.trigger("UpdateText", update);
-
-        this.state.text.rotate = event.target.value;
-        this.forceUpdate();
-    }
-
-    updateStroke (event) {
-        let update = {strokeWidth:event.target.value};
-        this.proxy.trigger("UpdateText", update);
-
-        this.state.text.strokeWidth = event.target.value;
-        this.forceUpdate();
-    }
-
-    updateLineGap (event) {
-        let update = {lineGap:event.target.value};
-        this.proxy.trigger("UpdateText", update);
-
-        this.state.text.lineGap = event.target.value;
         this.forceUpdate();
     }
 
@@ -78,34 +60,38 @@ class TextEditorComponent extends Component {
 
     render() {
         return (
-            <div className="text-controller">
+            <div className="text-controller" style={{visibility:this.hidden?"hidden":"visible"}}>
                 <div className="item">
                     <label>Size</label>
                     <input type="range" min="1" max="200" step="1"
-                           value={this.state.text.fontSize} onChange={this.updateFontSize.bind(this)} />
+                           value={this.state.text.fontSize}
+                           onChange={(e)=>this.update({fontSize:e.target.value})} />
                 </div>
 
                 <div className="item">
                     <label>stroke</label>
                     <input type="range" min="-0" max="90" step="1"
-                           value={this.state.text.strokeWidth} onChange={this.updateStroke.bind(this)} />
+                           value={this.state.text.strokeWidth}
+                           onChange={(e)=>this.update({strokeWidth:e.target.value})}/>
                 </div>
 
                 <div className="item">
                     <label>Rotate</label>
                     <input type="range" min="-90" max="90" step="1"
-                           value={this.state.text.rotate} onChange={this.updateRotate.bind(this)} />
+                           value={this.state.text.rotate}
+                           onChange={(e)=>this.update({rotate:e.target.value})}/>
                 </div>
 
                 <div className="item">
                     <label>lineGap</label>
                     <input type="range" min="0" max="6" step="1"
-                           value={this.state.text.lineGap} onChange={this.updateLineGap.bind(this)} />
+                           value={this.state.text.lineGap}
+                           onChange={(e)=>this.update({lineGap:e.target.value})}/>
                 </div>
 
 
 
-                <div className="item">
+                <div className="item" style={{visibility:(this.multipleSelected||this.hidden)?"hidden":"visible"}}>
                     <label>Content</label>
                     <Editor stlye={{backgroundColor:"#f6f6f6"}}
                             placeholder="Enter some text..."

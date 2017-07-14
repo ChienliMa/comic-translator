@@ -232,7 +232,8 @@ class InteractiveCanvasComponent extends Component {
                 <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
                      id="TextSvg" className="canvas-text" style={{zIndex: 7}}
                      onMouseUp={this.onMouseUp.bind(this)} onMouseMove={this.onMouseMove.bind(this)}
-                     onMouseDown ={this.onMouseDown.bind(this)} onDoubleClick={this.onDoubleClick.bind(this)}>
+                     onMouseDown ={this.onMouseDown.bind(this)} onDoubleClick={this.onDoubleClick.bind(this)}
+                     >
                     {texts}
                 </svg>
                 <TextEditorComponent id="TextEditor" project={this.project} />

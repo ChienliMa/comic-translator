@@ -59,7 +59,6 @@ class TextComponent extends Component {
 
     onMouseUp (event) {
         this.dragState = CONST.DRAG_NOTHING;
-        this.selected = this.keyPressed[CONST.KEYCODE_ALT];
         this.forceUpdate();
     }
 
