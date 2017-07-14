@@ -1,0 +1,14 @@
+const CONST = {
+    DRAG_RECT : "DRAG_RECT",
+    DRAG_TEXT : "DRAG_TEXT",
+    DRAG_NOTHING : "DRAG_NOTHING",
+    NOT_DRAGGING : "NOT_DRAGGING",
+    DRAG_START : "DRAG_START",
+
+    KEYCODE_F : 70,
+    KEYCODE_W : 87,
+    KEYCODE_S : 83,
+    KETCODY_ALT : "ALT",
+}
+
+export default CONST;
