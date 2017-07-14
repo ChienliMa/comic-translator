@@ -44,10 +44,14 @@ class Text {
         this.text = "请输入文字";
 
         this.fontSize = 30;
-        this.fontStyle = "serif";
+        this.fontStyle = "sansserif";
 
         this.strokeWidth = 0;
         this.isVertical = true;
+        this.rotate = 0; // degree
+        this.lineGap = 0;
+
+        this.textOrientation = 'upright'; // we wont change this
     }
 }
 
@@ -126,6 +130,7 @@ class InteractiveEditor extends Component {
         const demo_img = new Image();
         demo_img.src = testimg;
         page.image = demo_img;
+        page.filename = "demo.png"
 
         this.state = page;
         // for interactive component
@@ -324,7 +329,7 @@ class InteractiveEditor extends Component {
 
             let link = document.createElement('a');
             link.href = dt;
-            link.download = "filename";
+            link.download = this.state.filename;
             link.click();
         };
     }
@@ -378,6 +383,10 @@ class TextComponent extends Component {
             this.anchor = [event.clientX, event.clientY];
             this.oriPos = [].concat(this.state.pos);
             this.dragState = DRAG_START;
+
+            this.proxy.trigger("SelectText", this.state);
+            this.proxy.clearSubscribes("UpdateText");
+            this.proxy.subscribe("UpdateText", this.update.bind(this));
         }
     }
 
@@ -402,11 +411,6 @@ class TextComponent extends Component {
     }
 
     onMouseUp (event) {
-        if (this.dragState == DRAG_START) { // onclick
-            this.proxy.trigger("SelectText", this.state);
-            this.proxy.clearSubscribes("UpdateText");
-            this.proxy.subscribe("UpdateText", this.update.bind(this));
-        }
         this.dragState = DRAG_NOTHING;
     }
 
@@ -414,24 +418,50 @@ class TextComponent extends Component {
         let tspans = [];
         let writtingMode = "";
 
+        // no browser support stroke-alignment yet.
+        // to support outer stroke, draw two tspan for each text, one with alignment, ont without
+        // todo: extract tspans generation into a function
         if (this.state.isVertical) {
             this.state.text.split("\n").forEach( (line, index) => {
+                console.log("linegap: " ,this.state.lineGap , " x : " , this.state.pos ,(this.state.fontSize + this.state.lineGap), this.state.fontSize, this.state.pos[0] - index*(this.state.fontSize + this.state.lineGap));
                 let dy = line.length - line.trim().length;
-                tspans.push(<tspan y={this.state.pos[1] + dy*this.state.fontSize*0.1} dx={-1*this.state.fontSize}>{line.trim()}</tspan>)
+                tspans.push(<tspan stroke="#ffffff"
+                                   y={this.state.pos[1] + dy*this.state.fontSize*0.1}
+                                   x={this.state.pos[0] - index*(this.state.fontSize + this.state.lineGap)}>{line.trim()}</tspan>)
+            })
+
+            this.state.text.split("\n").forEach( (line, index) => {
+                let dy = line.length - line.trim().length;
+                tspans.push(<tspan y={this.state.pos[1] + dy*this.state.fontSize*0.1}
+                                   x={this.state.pos[0] - index*(this.state.fontSize + this.state.lineGap)}>{line.trim()}</tspan>)
             })
             writtingMode = "tb";
         } else {
+
+            // text-anchor="middle"  english layout
             this.state.text.split("\n").forEach( (line, index) => {
                 let dx = line.length - line.trim().length;
-                tspans.push(<tspan x={this.state.pos[0] + dx*this.state.fontSize*0.1} dy={ this.state.fontSize}>{line.trim()}</tspan>)
+                tspans.push(<tspan stroke="#ffffff"
+                                   x={this.state.pos[0] + dx*this.state.fontSize*0.1}
+                                   y={this.state.pos[1] + index*this.state.fontSize}>{line.trim()}</tspan>)
+            })
+            this.state.text.split("\n").forEach( (line, index) => {
+                let dx = line.length - line.trim().length;
+                tspans.push(<tspan x={this.state.pos[0] + dx*this.state.fontSize*0.1}
+                                   y={this.state.pos[1] + index*this.state.fontSize}>{line.trim()}</tspan>)
             })
         }
 
         return (
-            <text style={{writingMode:writtingMode}} alignmentBaseline="hanging"
+            <text style={{writingMode:writtingMode ,textOrientation: this.textOrientation}} alignmentBaseline="hanging"
                   x={this.state.pos[0]} y={this.state.pos[1]}
-                  fontSize={this.state.fontSize} fontFamily={this.state.fontStyle} strokeWidth={this.state.strokeWidth}
-                  stroke="#ffffff" fill="#000000"
+                  fontSize={this.state.fontSize} fontFamily="sans-serif"
+
+                  strokeLinejoin="round"  strokeLinecap="round" strokeWidth={this.state.strokeWidth}
+                  strokeMiterlimit={200} fill="#000000"
+
+                  transform={`rotate(${this.state.rotate} ${this.state.pos[0]}, ${this.state.pos[1]})`}
+
                   onMouseDown={this.onMouseDown.bind(this)}  onMouseUp={this.onMouseUp.bind(this)}
             >
                 {tspans}
@@ -482,6 +512,31 @@ class TextEditorComponent extends Component {
         this.forceUpdate();
     }
 
+
+    updateRotate (event) {
+        let update = {rotate:event.target.value};
+        this.proxy.trigger("UpdateText", update);
+
+        this.state.text.rotate = event.target.value;
+        this.forceUpdate();
+    }
+
+    updateStroke (event) {
+        let update = {strokeWidth:event.target.value};
+        this.proxy.trigger("UpdateText", update);
+
+        this.state.text.strokeWidth = event.target.value;
+        this.forceUpdate();
+    }
+
+    updateLineGap (event) {
+        let update = {lineGap:event.target.value};
+        this.proxy.trigger("UpdateText", update);
+
+        this.state.text.lineGap = event.target.value;
+        this.forceUpdate();
+    }
+
     updateText (editorState) {
         let updatedText = Plain.serialize(editorState);
         let update = {text:updatedText};
@@ -492,20 +547,44 @@ class TextEditorComponent extends Component {
 
 
     render() {
-        let sss = 333;
         return (
             <div className="text-controller">
                 <div className="item">
                     <label>Size</label>
-                    <input type="range" min="1" max="50" step="1"
+                    <input type="range" min="1" max="200" step="1"
                            value={this.state.text.fontSize} onChange={this.updateFontSize.bind(this)} />
                 </div>
+
+                <div className="item">
+                    <label>stroke</label>
+                    <input type="range" min="-0" max="90" step="1"
+                           value={this.state.text.strokeWidth} onChange={this.updateStroke.bind(this)} />
+                </div>
+
+                <div className="item">
+                    <label>Rotate</label>
+                    <input type="range" min="-90" max="90" step="1"
+                           value={this.state.text.rotate} onChange={this.updateRotate.bind(this)} />
+                </div>
+
+                <div className="item">
+                    <label>lineGap</label>
+                    <input type="range" min="0" max="6" step="1"
+                           value={this.state.text.lineGap} onChange={this.updateLineGap.bind(this)} />
+                </div>
+
+
+
                 <div className="item">
                     <label>Content</label>
                     <Editor stlye={{backgroundColor:"#f6f6f6"}}
                             placeholder="Enter some text..."
                             onChange={editorState => this.updateText(editorState)}
                             state={this.state.editorState}/>
+                </div>
+
+                <div className="item" style={{textAlign: "center"}}>
+                    <button>Close</button>
                 </div>
             </div>
         )
