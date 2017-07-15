@@ -71,28 +71,37 @@ class TextComponent extends Component {
         this.forceUpdate();
     }
 
+    getSelectedTag() {
+        let [x, y] = this.state.pos;
+        return (<g>
+            <line x1={x-0.5*this.state.size} y1={y} x2={x+0.5*this.state.size} y2={y}
+                  style={{'stroke':'red', 'stroke-width':2}} />
+            <line x1={x+0.5*this.state.size} y1={y} x2={x+0.5*this.state.size} y2={y+this.state.size}
+                  style={{'stroke':'red', 'stroke-width':2}} />
+        </g>);
+    }
+
     render () {
         let tspans = [];
-        let writtingMode = "";
         let [x, y] = this.state.pos;
 
         // no browser support stroke-alignment yet.
         // to support outer stroke, draw two tspan for each text, one with alignment, ont without
         // todo: extract tspans generation into a function
         if (this.state.isVertical) {
+            let lineGap = this.state.size * this.state.lineGap * 0.01;
             this.state.text.split("\n").forEach( (line, index) => {
                 let dy = line.length - line.trim().length;
                 tspans.push(<tspan stroke="#ffffff"
                                    y={y + dy*this.state.size*0.1}
-                                   x={x - index*(this.state.size + this.state.lineGap)}>{line.trim()}</tspan>)
+                                   x={x - index*(this.state.size + lineGap)}>{line.trim()}</tspan>)
             });
 
             this.state.text.split("\n").forEach( (line, index) => {
                 let dy = line.length - line.trim().length;
                 tspans.push(<tspan y={y + dy*this.state.size*0.1}
-                                   x={x - index*(this.state.size + this.state.lineGap)}>{line.trim()}</tspan>)
+                                   x={x - index*(this.state.size + lineGap)}>{line.trim()}</tspan>)
             });
-            writtingMode = "tb";
         } else {
 
             // text-anchor="middle"  english layout
@@ -111,25 +120,26 @@ class TextComponent extends Component {
 
         let selectedTag = null;
         if (this.selected) {
-            selectedTag = <circle cx={x} cy={y-0.2*this.state.size} r={this.state.size*0.1} fill="red"/>;
+            // selectedTag = <circle cx={x} cy={y-0.2*this.state.size} r={this.state.size*0.1} fill="red"/>;
+            selectedTag = this.getSelectedTag();
         }
 
         return (
-            <g>
-                {selectedTag}
-            <text style={{writingMode:writtingMode ,textOrientation: this.textOrientation}} alignmentBaseline="hanging"
+            <g transform={`rotate(${this.state.rotate} ${x}, ${y})`}>
+            <text style={{writingMode:'tb'}} alignmentBaseline="hanging"
                   x={x} y={y}
                   fontSize={this.state.size} fontFamily="sans-serif"
 
                   strokeLinejoin="round"  strokeLinecap="round" strokeWidth={this.state.strokeWidth}
                   strokeMiterlimit={200} fill="#000000"
 
-                  transform={`rotate(${this.state.rotate} ${x}, ${y})`}
 
                   onMouseDown={this.onMouseDown.bind(this)}  onMouseUp={this.onMouseUp.bind(this)}
             >
                 {tspans}
             </text>
+                {selectedTag}
+
             </g>
         )
     }

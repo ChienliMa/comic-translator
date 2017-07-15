@@ -74,28 +74,28 @@ class TextEditorComponent extends Component {
                     <label>Size</label>
                     <input type="range" min="1" max="200" step="1"
                            value={this.state.text.size}
-                           onChange={(e)=>this.update({size:e.target.value})} />
+                           onChange={(e)=>this.update({size : parseInt(e.target.value)})} />
                 </div>
 
                 <div className="item">
                     <label>stroke</label>
                     <input type="range" min="-0" max="90" step="1"
                            value={this.state.text.strokeWidth}
-                           onChange={(e)=>this.update({strokeWidth:e.target.value})}/>
+                           onChange={(e)=>this.update({strokeWidth : parseInt(e.target.value)})}/>
                 </div>
 
                 <div className="item">
                     <label>Rotate</label>
                     <input type="range" min="-90" max="90" step="1"
                            value={this.state.text.rotate}
-                           onChange={(e)=>this.update({rotate:e.target.value})}/>
+                           onChange={(e)=>this.update({rotate : parseInt(e.target.value)})}/>
                 </div>
 
                 <div className="item">
                     <label>lineGap</label>
-                    <input type="range" min="0" max="6" step="1"
+                    <input type="range" min="0" max="100" step="1"
                            value={this.state.text.lineGap}
-                           onChange={(e)=>this.update({lineGap:e.target.value})}/>
+                           onChange={(e)=>this.update({lineGap : parseInt(e.target.value)})}/>
                 </div>
 
 
