@@ -158,7 +158,7 @@ class InteractiveCanvasComponent extends Component {
 
     onMouseMove (event) {
         if (this.drag.state == CONST.NOT_DRAGGING ){
-            this.drag.state = CONST.DRAG_NOTHING
+            this.drag.state = CONST.DRAG_NOTHING;
             return;
         }
 
@@ -236,7 +236,7 @@ class InteractiveCanvasComponent extends Component {
                      >
                     {texts}
                 </svg>
-                <TextEditorComponent id="TextEditor" project={this.project} />
+                <TextEditorComponent id="TextEditor" project={this.project} keyPressed={this.keyPressed} />
             </div>
         )
     }

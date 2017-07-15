@@ -36,8 +36,10 @@ class TextComponent extends Component {
             this.oriPos = [].concat(this.state.pos);
             this.dragState = CONST.DRAG_START;
 
+            if (!this.keyPressed[CONST.KEYCODE_ALT]) { // allow multiple text to be select when alt is pressd
+                this.proxy.clearSubscribes("UpdateText");
+            }
             this.proxy.trigger("SelectText", this.state);
-            this.proxy.clearSubscribes("UpdateText");
             this.proxy.subscribe("UpdateText", this.update.bind(this));
             this.selected = true;
             this.forceUpdate();
@@ -69,8 +71,6 @@ class TextComponent extends Component {
         this.forceUpdate();
     }
 
-
-
     render () {
         let tspans = [];
         let writtingMode = "";
@@ -85,13 +85,13 @@ class TextComponent extends Component {
                 tspans.push(<tspan stroke="#ffffff"
                                    y={y + dy*this.state.size*0.1}
                                    x={x - index*(this.state.size + this.state.lineGap)}>{line.trim()}</tspan>)
-            })
+            });
 
             this.state.text.split("\n").forEach( (line, index) => {
                 let dy = line.length - line.trim().length;
                 tspans.push(<tspan y={y + dy*this.state.size*0.1}
                                    x={x - index*(this.state.size + this.state.lineGap)}>{line.trim()}</tspan>)
-            })
+            });
             writtingMode = "tb";
         } else {
 
@@ -101,17 +101,17 @@ class TextComponent extends Component {
                 tspans.push(<tspan stroke="#ffffff"
                                    x={x + dx*this.state.size*0.1}
                                    y={y + index*this.state.size}>{line.trim()}</tspan>)
-            })
+            });
             this.state.text.split("\n").forEach( (line, index) => {
                 let dx = line.length - line.trim().length;
                 tspans.push(<tspan x={x + dx*this.state.size*0.1}
                                    y={y + index*this.state.size}>{line.trim()}</tspan>)
-            })
+            });
         }
 
         let selectedTag = null;
         if (this.selected) {
-            selectedTag = <circle cx={x} cy={y-0.2*this.state.size} r={this.state.size*0.1} fill="red"></circle>;
+            selectedTag = <circle cx={x} cy={y-0.2*this.state.size} r={this.state.size*0.1} fill="red"/>;
         }
 
         return (

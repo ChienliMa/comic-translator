@@ -1,11 +1,14 @@
 import React, {Component} from 'react';
 import { Editor, Plain } from "slate";
 import {Text} from '../utils';
+import CONST from '../constants';
 
 class TextEditorComponent extends Component {
     constructor (props) {
         super(props);
         this.proxy = props.project.proxy;
+        this.keyPressed = props.keyPressed;
+
         let demoText = new Text([0,0]);
         this.state = {
             text: demoText,
@@ -27,14 +30,21 @@ class TextEditorComponent extends Component {
             text : text,
             editorState : Plain.deserialize(text.text)
         });
+        this.hidden = true;
+        this.multipleSelected = false;
+        this.forceUpdate();
     }
 
     selectText (text) {
         if (text != null) {
-            this.setState({
-                text : text,
-                editorState : Plain.deserialize(text.text)
-            });
+            if (this.keyPressed[CONST.KEYCODE_ALT]) {
+                this.multipleSelected = true;
+            } else {
+                this.setState({
+                    text : text,
+                    editorState : Plain.deserialize(text.text)
+                });
+            }
             this.hidden = false;
         } else {
             this.hidden = true;
@@ -42,7 +52,6 @@ class TextEditorComponent extends Component {
 
         this.forceUpdate();
     }
-
 
     update (update) {
         this.proxy.trigger("UpdateText", update);

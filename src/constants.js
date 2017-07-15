@@ -8,7 +8,7 @@ const CONST = {
     KEYCODE_F : 70,
     KEYCODE_W : 87,
     KEYCODE_S : 83,
-    KETCODY_ALT : "ALT",
+    KEYCODE_ALT : "ALT",
 }
 
 export default CONST;
