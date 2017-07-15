@@ -186,7 +186,7 @@ class InteractiveCanvasComponent extends Component {
 
 
         let svgImage = new Image();
-        svgImage.src = this.getSvgSrc()
+        svgImage.src = this.getSvgSrc();
 
         svgImage.onload = ()=>{
             outputCtx.drawImage(this.ctxes.base.canvas, 0, 0);
@@ -208,7 +208,7 @@ class InteractiveCanvasComponent extends Component {
 
     render() {
         let texts = [];
-        this.state.texts.forEach((text, index) =>{
+        this.state.texts.forEach((text) =>{
             texts.push(<TextComponent keyPressed={this.keyPressed} proxy={this.project.proxy}
                                       text={text} key={text.key}/>)
         });
