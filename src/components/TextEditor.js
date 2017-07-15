@@ -1,5 +1,8 @@
 import React, {Component} from 'react';
 import { Editor, Plain } from "slate";
+import Select from 'react-select';
+import 'react-select/dist/react-select.css';
+
 import {Text} from '../utils';
 import CONST from '../constants';
 
@@ -44,6 +47,7 @@ class TextEditorComponent extends Component {
                     text : text,
                     editorState : Plain.deserialize(text.text)
                 });
+                this.multipleSelected = false;
             }
             this.hidden = false;
         } else {
@@ -59,11 +63,13 @@ class TextEditorComponent extends Component {
     }
 
     updateText (editorState) {
-        let updatedText = Plain.serialize(editorState);
-        let update = {text:updatedText};
-        this.proxy.trigger("UpdateText", update);
-        this.state.editorState = editorState;
-        this.forceUpdate();
+        if (!this.multipleSelected) {
+            let updatedText = Plain.serialize(editorState);
+            let update = {text:updatedText};
+            this.proxy.trigger("UpdateText", update);
+            this.state.editorState = editorState;
+            this.forceUpdate();
+        }
     }
 
 
@@ -98,6 +104,19 @@ class TextEditorComponent extends Component {
                            onChange={(e)=>this.update({lineGap : parseInt(e.target.value)})}/>
                 </div>
 
+
+                <div className="item">
+                    <label>Font</label>
+                    <Select
+                        name="form-field-name"
+                        value="one"
+                        options={ [
+                            { value: 'one', label: 'One' },
+                            { value: 'two', label: 'Two' }
+                        ]
+                        }
+                    />
+                </div>
 
                 <div className="item" style={{visibility:(this.multipleSelected||this.hidden)?"hidden":"visible"}}>
                     <label>Content</label>

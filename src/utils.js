@@ -39,7 +39,7 @@ class Text {
         this.style= "sansserif";
 
         this.strokeWidth = 0;
-        this.isVertical = true;
+        this.isVertical = false;
         this.rotate = 0; // degree
         this.lineGap = 0;
 

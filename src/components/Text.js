@@ -73,73 +73,80 @@ class TextComponent extends Component {
 
     getSelectedTag() {
         let [x, y] = this.state.pos;
-        return (<g>
-            <line x1={x-0.5*this.state.size} y1={y} x2={x+0.5*this.state.size} y2={y}
-                  style={{'stroke':'red', 'stroke-width':2}} />
-            <line x1={x+0.5*this.state.size} y1={y} x2={x+0.5*this.state.size} y2={y+this.state.size}
-                  style={{'stroke':'red', 'stroke-width':2}} />
-        </g>);
+        let fontSize = this.state.size;
+        return this.state.isVertical?
+            (<g>
+                <line x1={x-0.5*fontSize} y1={y} x2={x+0.5*fontSize} y2={y}
+                      style={{'stroke':'red', 'stroke-width':2}} />
+                <line x1={x+0.5*fontSize} y1={y} x2={x+0.5*fontSize} y2={y+fontSize}
+                      style={{'stroke':'red', 'stroke-width':2}} />
+            </g>)
+            :
+            (<g>
+                <line x1={x-fontSize} y1={y-fontSize} x2={x+fontSize} y2={y-fontSize}
+                      style={{'stroke':'red', 'stroke-width':2}} />
+            </g>);
+    }
+
+    // no browser support stroke-alignment yet.
+    // to support outer stroke, draw two tspan for each text, one with alignment, ont without
+    getVerticalTspan() {
+        let tspans = [];
+        let [x, y] = this.state.pos;
+        let lineGap = this.state.size * this.state.lineGap * 0.01;
+        this.state.text.split("\n").forEach( (line, index) => {
+            let dy = line.length - line.trim().length;
+            tspans.push(<tspan stroke="#ffffff"
+                               y={y + dy*this.state.size*0.1}
+                               x={x - index*(this.state.size + lineGap)}>{line.trim()}</tspan>)
+        });
+
+        this.state.text.split("\n").forEach( (line, index) => {
+            let dy = line.length - line.trim().length;
+            tspans.push(<tspan y={y + dy*this.state.size*0.1}
+                               x={x - index*(this.state.size + lineGap)}>{line.trim()}</tspan>)
+        });
+        return tspans;
+    }
+
+    getHorizentalTspan() {
+        let tspans = [];
+        let [x, y] = this.state.pos;
+        let lineGap = this.state.size * this.state.lineGap * 0.01;
+        this.state.text.split("\n").forEach( (line, index) => {
+            tspans.push(<tspan  x={x} y={y + index*(this.state.size + lineGap)}
+                               stroke="#ffffff">
+                            {line}
+                        </tspan>)
+        });
+
+        this.state.text.split("\n").forEach( (line, index) => {
+            tspans.push(<tspan  x={x} y={y + index*(this.state.size + lineGap)}>
+                            {line}
+                        </tspan>)
+        });
+        return tspans;
     }
 
     render () {
-        let tspans = [];
         let [x, y] = this.state.pos;
-
-        // no browser support stroke-alignment yet.
-        // to support outer stroke, draw two tspan for each text, one with alignment, ont without
-        // todo: extract tspans generation into a function
-        if (this.state.isVertical) {
-            let lineGap = this.state.size * this.state.lineGap * 0.01;
-            this.state.text.split("\n").forEach( (line, index) => {
-                let dy = line.length - line.trim().length;
-                tspans.push(<tspan stroke="#ffffff"
-                                   y={y + dy*this.state.size*0.1}
-                                   x={x - index*(this.state.size + lineGap)}>{line.trim()}</tspan>)
-            });
-
-            this.state.text.split("\n").forEach( (line, index) => {
-                let dy = line.length - line.trim().length;
-                tspans.push(<tspan y={y + dy*this.state.size*0.1}
-                                   x={x - index*(this.state.size + lineGap)}>{line.trim()}</tspan>)
-            });
-        } else {
-
-            // text-anchor="middle"  english layout
-            this.state.text.split("\n").forEach( (line, index) => {
-                let dx = line.length - line.trim().length;
-                tspans.push(<tspan stroke="#ffffff"
-                                   x={x + dx*this.state.size*0.1}
-                                   y={y + index*this.state.size}>{line.trim()}</tspan>)
-            });
-            this.state.text.split("\n").forEach( (line, index) => {
-                let dx = line.length - line.trim().length;
-                tspans.push(<tspan x={x + dx*this.state.size*0.1}
-                                   y={y + index*this.state.size}>{line.trim()}</tspan>)
-            });
-        }
-
-        let selectedTag = null;
-        if (this.selected) {
-            // selectedTag = <circle cx={x} cy={y-0.2*this.state.size} r={this.state.size*0.1} fill="red"/>;
-            selectedTag = this.getSelectedTag();
-        }
 
         return (
             <g transform={`rotate(${this.state.rotate} ${x}, ${y})`}>
-            <text style={{writingMode:'tb'}} alignmentBaseline="hanging"
-                  x={x} y={y}
-                  fontSize={this.state.size} fontFamily="sans-serif"
+                <text x={x} y={y} alignmentBaseline="hanging" textAnchor={this.state.isVertical?'start':'middle'}
 
-                  strokeLinejoin="round"  strokeLinecap="round" strokeWidth={this.state.strokeWidth}
-                  strokeMiterlimit={200} fill="#000000"
+                      style={{writingMode:this.state.isVertical?'tb':'lr'}}
+                      fontSize={this.state.size} fontFamily="sans-serif"
 
+                      strokeLinejoin="round"  strokeLinecap="round" strokeWidth={this.state.strokeWidth}
+                      strokeMiterlimit={200} fill="#000000"
 
-                  onMouseDown={this.onMouseDown.bind(this)}  onMouseUp={this.onMouseUp.bind(this)}
-            >
-                {tspans}
-            </text>
-                {selectedTag}
+                      onMouseDown={this.onMouseDown.bind(this)}  onMouseUp={this.onMouseUp.bind(this)}
+                >
+                    {this.state.isVertical?this.getVerticalTspan():this.getHorizentalTspan()}
+                </text>
 
+                {this.selected?this.getSelectedTag():null}
             </g>
         )
     }

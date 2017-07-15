@@ -11,7 +11,7 @@
     "react": "^15.6.1",
     "react-bootstrap": "^0.31.0",
     "react-dom": "^15.6.1",
-    "react-select2-wrapper": "^1.0.4-beta5",
+    "react-select": "^1.0.0-rc.5",
     "redux": "^3.6.0",
     "slate": "^0.20.4"
   },
