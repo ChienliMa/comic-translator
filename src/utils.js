@@ -1,4 +1,3 @@
-const DemoImage = require("./testimg.jpeg");
 
 export {
     Project,
@@ -20,15 +19,6 @@ class Project {
 
 class Page {
     constructor (filename, src, key){
-        if (filename === undefined) {
-            // create demo image
-            const demo_img = new Image();
-            demo_img.src = DemoImage;
-            this.image = demo_img;
-            this.filename = "demo.png"
-            this.key = "demo";
-        }
-
         let image = new Image();
         image.src = src;
         image.crossOrigin = "Anonymous";
@@ -52,6 +42,8 @@ class Text {
         this.isVertical = true;
         this.rotate = 0; // degree
         this.lineGap = 0;
+
+        this.key =  new Date().getTime().toString();// for React to identify objects
 
         this.textOrientation = 'upright'; // we wont change this
     }

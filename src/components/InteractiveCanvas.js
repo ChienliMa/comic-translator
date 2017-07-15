@@ -5,27 +5,24 @@ import TextEditorComponent from './TextEditor'
 import {Project, Page, Rect, Text, EventProxy} from '../utils'
 
 import CONST from '../constants';
+const DemoImage = require("../testimg.jpeg");
 
 class InteractiveCanvasComponent extends Component {
     constructor(props) {
         super(props);
 
         this.project = props.project;
+        this.state = new Page("testimg.jpeg", DemoImage, "demoImg");
 
-        const page = new Page();
-
-        this.state = page;
         // for interactive component
-        this.drag = {};
-        this.drag.state = "";
-        this.drag.item = null;
-        this.drag.startPos = null;
+        this.drag = {
+            state : "",
+            item : null,
+        };
 
         this.keyPressed = {};
         this.keyPressed[CONST.KEYCODE_ALT] = false;
-
         this.hidden = false;
-
     }
 
     componentDidMount() {
@@ -38,21 +35,9 @@ class InteractiveCanvasComponent extends Component {
 
         this.textSvg = document.getElementById("TextSvg");
 
-
-        this.loadDemoImage();
+        this.state.image.onload = () => {this.refreshAllCanvases();};
         this.registerListeners();
         this.refreshAllCanvases();
-    }
-
-    componentWillMount () {
-        const model = this;
-        document.body.removeEventListener('keydown', model.onKeyDown.bind(model));
-        document.body.removeEventListener('keyup', model.onKeyUp.bind(model));
-        this.project.proxy.clearSubscribes("SelectImg");
-    }
-
-    loadDemoImage() {
-        this.state.image.onload = () => {this.refreshAllCanvases();};
     }
 
     registerListeners () {
@@ -62,11 +47,22 @@ class InteractiveCanvasComponent extends Component {
     }
 
     bindToPage (page) {
-        this.state.svgSrc = this.getSvgSrc();
+        this.saveSvgSrc();
+        // clear svg to avoid react not update this
+
+
+
         this.state = page;
         this.forceUpdate(()=>{
             this.refreshAllCanvases();
         });
+    }
+
+    componentWillMount () {
+        const model = this;
+        document.body.removeEventListener('keydown', model.onKeyDown.bind(model));
+        document.body.removeEventListener('keyup', model.onKeyUp.bind(model));
+        this.project.proxy.clearSubscribes("SelectImg");
     }
 
     onKeyDown (event) {
@@ -75,7 +71,7 @@ class InteractiveCanvasComponent extends Component {
 
         if (event.keyCode === CONST.KEYCODE_W && !this.hidden) {
             this.hidden = true;
-            this.clearRectCanvas();
+            this.ctxes.rect.canvas.style.visibility = "hidden";
             this.textSvg.setAttribute("visibility","hidden");
         }
     }
@@ -84,14 +80,14 @@ class InteractiveCanvasComponent extends Component {
         this.keyPressed[event.keyCode] = false;
         this.keyPressed[CONST.KEYCODE_ALT] = event.altKey;
 
-        if (event.keyCode == CONST.KEYCODE_S && event.altKey) {
+        if (event.keyCode === CONST.KEYCODE_S && event.altKey) {
             this.exportSingleImage();
         }
 
         if (event.keyCode === CONST.KEYCODE_W && this.hidden) {
             this.hidden = false;
-            this.renderRectCanvas();
-            this.textSvg.setAttribute("visibility","visible");
+            this.ctxes.rect.canvas.style.visibility = "visible";
+            this.textSvg.setAttribute("visibility", "visible");
         }
     }
 
@@ -115,16 +111,8 @@ class InteractiveCanvasComponent extends Component {
     }
 
     refreshRectCanvas () {
-        this.clearRectCanvas();
-        this.renderRectCanvas();
-    }
-
-    clearRectCanvas () {
         const canvas = this.ctxes.rect.canvas;
         this.ctxes.rect.clearRect(0,0,canvas.width,canvas.height);
-    }
-
-    renderRectCanvas () {
         this.state.rects.map((x) => {x.renderOnContext(this.ctxes.rect)});
     }
 
@@ -157,7 +145,7 @@ class InteractiveCanvasComponent extends Component {
     }
 
     onMouseMove (event) {
-        if (this.drag.state == CONST.NOT_DRAGGING ){
+        if (this.drag.state === CONST.NOT_DRAGGING ){
             this.drag.state = CONST.DRAG_NOTHING;
             return;
         }
@@ -180,13 +168,13 @@ class InteractiveCanvasComponent extends Component {
         this.drag = {state : ""};
     }
 
-    saveSvgSrc () {
-        this.state.svgSrc = this.getSvgSrc();
-    }
-
     getSvgSrc () {
         let svgString = new XMLSerializer().serializeToString(this.textSvg);
         return 'data:image/svg+xml;base64,'+ window.btoa(unescape(encodeURIComponent(svgString)));
+    }
+
+    saveSvgSrc () {
+        this.state.svgSrc = this.getSvgSrc();
     }
 
     exportSingleImage () {
@@ -228,7 +216,9 @@ class InteractiveCanvasComponent extends Component {
         return (
             <div className="editor-div">
                 <canvas id="BaseCanvas" className="canvas-base" style={{zIndex: 1}}/>
+
                 <canvas id="RectCanvas" className="canvas-rect" style={{zIndex: 2}}/>
+
                 <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
                      id="TextSvg" className="canvas-text" style={{zIndex: 7}}
                      onMouseUp={this.onMouseUp.bind(this)} onMouseMove={this.onMouseMove.bind(this)}
