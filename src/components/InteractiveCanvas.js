@@ -210,7 +210,7 @@ class InteractiveCanvasComponent extends Component {
         let texts = [];
         this.state.texts.forEach((text, index) =>{
             texts.push(<TextComponent keyPressed={this.keyPressed} proxy={this.project.proxy}
-                                      text={text} key={this.state.key + "," + index}/>)
+                                      text={text} key={text.key}/>)
         });
 
         return (
