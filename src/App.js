@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import './App.css';
-
+import './fonts.css';
 import {Project} from './utils'
 import GalleryComponent from './components/Gallery';
 import InteractiveCanvasComponent from './components/InteractiveCanvas';

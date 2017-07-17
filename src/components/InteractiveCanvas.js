@@ -48,10 +48,6 @@ class InteractiveCanvasComponent extends Component {
 
     bindToPage (page) {
         this.saveSvgSrc();
-        // clear svg to avoid react not update this
-
-
-
         this.state = page;
         this.forceUpdate(()=>{
             this.refreshAllCanvases();
@@ -82,6 +78,11 @@ class InteractiveCanvasComponent extends Component {
 
         if (event.keyCode === CONST.KEYCODE_S && event.altKey) {
             this.exportSingleImage();
+        }
+
+        if (event.keyCode === CONST.KEYCODE_Z && event.altKey) {
+            this.state.rects.pop();
+            this.refreshRectCanvas();
         }
 
         if (event.keyCode === CONST.KEYCODE_W && this.hidden) {

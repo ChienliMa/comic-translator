@@ -36,7 +36,7 @@ class Text {
         this.text = "请输入文字";
 
         this.size = 30;
-        this.style= "sansserif";
+        this.style= "华康简仿宋";
 
         this.strokeWidth = 0;
         this.isVertical = false;

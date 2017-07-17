@@ -8,6 +8,7 @@ const CONST = {
     KEYCODE_F : 70,
     KEYCODE_W : 87,
     KEYCODE_S : 83,
+    KEYCODE_Z : 90,
     KEYCODE_ALT : "ALT",
 }
 

@@ -6,6 +6,8 @@ import 'react-select/dist/react-select.css';
 import {Text} from '../utils';
 import CONST from '../constants';
 
+let getFontOptions = require('../fontOptions.jsx');
+
 class TextEditorComponent extends Component {
     constructor (props) {
         super(props);
@@ -76,6 +78,19 @@ class TextEditorComponent extends Component {
     render() {
         return (
             <div className="text-controller" style={{visibility:this.hidden?"hidden":"visible"}}>
+                <div  className="item" style={{display:'block'}}>
+                    <label >Font</label>
+                    <div style={{paddingLeft:'136px'}}>
+                        <Select
+                            name="ffont"
+                            value={this.state.style}
+                            options={getFontOptions()}
+                            onChange={(value)=>this.update({style:value})}
+                        />
+                    </div>
+
+                </div>
+
                 <div className="item">
                     <label>Size</label>
                     <input type="range" min="1" max="200" step="1"
@@ -102,20 +117,6 @@ class TextEditorComponent extends Component {
                     <input type="range" min="0" max="100" step="1"
                            value={this.state.text.lineGap}
                            onChange={(e)=>this.update({lineGap : parseInt(e.target.value)})}/>
-                </div>
-
-
-                <div className="item">
-                    <label>Font</label>
-                    <Select
-                        name="form-field-name"
-                        value="one"
-                        options={ [
-                            { value: 'one', label: 'One' },
-                            { value: 'two', label: 'Two' }
-                        ]
-                        }
-                    />
                 </div>
 
                 <div className="item" style={{visibility:(this.multipleSelected||this.hidden)?"hidden":"visible"}}>

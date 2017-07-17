@@ -68,7 +68,11 @@ class TextComponent extends Component {
         for (let prop in newState) {
             this.state[prop] = newState[prop];
         }
-        this.forceUpdate();
+        this.forceUpdate(() => {
+            let svg = document.getElementById("TextSvg");
+            svg.setAttribute("visibility","hidden");
+            svg.setAttribute("visibility","visible");
+        });
     }
 
     getSelectedTag() {
@@ -77,14 +81,14 @@ class TextComponent extends Component {
         return this.state.isVertical?
             (<g>
                 <line x1={x-0.5*fontSize} y1={y} x2={x+0.5*fontSize} y2={y}
-                      style={{'stroke':'red', 'stroke-width':2}} />
+                      style={{'stroke':'red', 'strokeWidth':2}} />
                 <line x1={x+0.5*fontSize} y1={y} x2={x+0.5*fontSize} y2={y+fontSize}
-                      style={{'stroke':'red', 'stroke-width':2}} />
+                      style={{'stroke':'red', 'strokeWidth':2}} />
             </g>)
             :
             (<g>
                 <line x1={x-fontSize} y1={y-fontSize} x2={x+fontSize} y2={y-fontSize}
-                      style={{'stroke':'red', 'stroke-width':2}} />
+                      style={{'stroke':'red', 'strokeWidth':2}} />
             </g>);
     }
 
@@ -136,7 +140,7 @@ class TextComponent extends Component {
                 <text x={x} y={y} alignmentBaseline="hanging" textAnchor={this.state.isVertical?'start':'middle'}
 
                       style={{writingMode:this.state.isVertical?'tb':'lr'}}
-                      fontSize={this.state.size} fontFamily="sans-serif"
+                      fontSize={this.state.size} fontFamily={this.state.style}
 
                       strokeLinejoin="round"  strokeLinecap="round" strokeWidth={this.state.strokeWidth}
                       strokeMiterlimit={200} fill="#000000"
