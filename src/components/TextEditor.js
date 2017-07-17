@@ -83,9 +83,9 @@ class TextEditorComponent extends Component {
                     <div style={{paddingLeft:'136px'}}>
                         <Select
                             name="ffont"
-                            value={this.state.style}
+                            value={this.state.text.style}
                             options={getFontOptions()}
-                            onChange={(value)=>this.update({style:value})}
+                            onChange={(value)=>this.update({style:value.value})}
                         />
                     </div>
 

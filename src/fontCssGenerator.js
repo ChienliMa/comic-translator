@@ -1,7 +1,14 @@
 const testFolder = './fonts/';
 const fs = require('fs');
 
-let fontFiles = [];
+const Format = {
+    woff2 : 'woff2',
+    woff : 'woff',
+    ttf : 'truetype',
+    ttc : 'truetype',
+    otf : 'opentype',
+};
+
 fs.readdir(testFolder, (err, fontFiles) => {
     let outputCss = '';
     let url = '';
@@ -9,8 +16,9 @@ fs.readdir(testFolder, (err, fontFiles) => {
     let options = '';
     fontFiles.forEach((fontFile) => {
         url = `"./fonts/${fontFile}"`;
-        font = fontFile.split('.')[0]
-        outputCss = outputCss +  `@font-face {font-family: ${font}; src: url(${url}); } \n`;
+        [font, extension] = fontFile.split('.');
+        extension = extension.toLowerCase();
+        outputCss = outputCss +  `@font-face {font-family: ${font}; src: url(${url}) format('${Format[extension]}'); } \n`;
         options += `{value:'${font}', label:'${font}'},\n`
     });
 

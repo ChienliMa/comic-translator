@@ -134,7 +134,7 @@ class TextComponent extends Component {
 
     render () {
         let [x, y] = this.state.pos;
-
+        console.log(this.state.style);
         return (
             <g transform={`rotate(${this.state.rotate} ${x}, ${y})`}>
                 <text x={x} y={y} alignmentBaseline="hanging" textAnchor={this.state.isVertical?'start':'middle'}

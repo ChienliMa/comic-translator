@@ -33,7 +33,7 @@ class Page {
 class Text {
     constructor (pos) {
         this.pos = pos;
-        this.text = "请输入文字";
+        this.text = "請輸入文字";
 
         this.size = 30;
         this.style= "华康简仿宋";
