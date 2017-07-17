@@ -39,7 +39,7 @@ class Text {
         this.style= "华康简仿宋";
 
         this.strokeWidth = 0;
-        this.isVertical = false;
+        this.isVertical = true;
         this.rotate = 0; // degree
         this.lineGap = 0;
 
