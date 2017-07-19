@@ -47,11 +47,13 @@ class InteractiveCanvasComponent extends Component {
     }
 
     bindToPage (page) {
+        this.project.proxy.trigger("SelectText", "NULL");
         this.saveSvgSrc();
         this.state = page;
         this.forceUpdate(()=>{
             this.refreshAllCanvases();
         });
+
     }
 
     componentWillMount () {
@@ -179,32 +181,38 @@ class InteractiveCanvasComponent extends Component {
     }
 
     exportSingleImage () {
-        let outputCanvas = document.createElement("canvas");
-        let outputCtx = outputCanvas.getContext("2d");
+        this.project.proxy.trigger("SelectText", "NULL");
 
-        outputCanvas.width = this.state.image.width;
-        outputCanvas.height = this.state.image.height;
+        let func = () => {
+            let outputCanvas = document.createElement("canvas");
+            let outputCtx = outputCanvas.getContext("2d");
+
+            outputCanvas.width = this.state.image.width;
+            outputCanvas.height = this.state.image.height;
 
 
-        let svgImage = new Image();
-        svgImage.src = this.getSvgSrc();
+            let svgImage = new Image();
+            svgImage.src = this.getSvgSrc();
 
-        svgImage.onload = ()=>{
-            outputCtx.drawImage(this.ctxes.base.canvas, 0, 0);
-            outputCtx.drawImage(this.ctxes.rect.canvas, 0, 0);
-            outputCtx.drawImage(svgImage, 0, 0);
+            svgImage.onload = ()=>{
+                outputCtx.drawImage(this.ctxes.base.canvas, 0, 0);
+                outputCtx.drawImage(this.ctxes.rect.canvas, 0, 0);
+                outputCtx.drawImage(svgImage, 0, 0);
 
-            let dt = outputCanvas.toDataURL('image/png');
-            /* Change MIME type to trick the browser to downlaod the file instead of displaying it */
-            dt = dt.replace(/^data:image\/[^;]*/, 'data:application/octet-stream');
-            /* In addition to <a>'s "download" attribute, you can define HTTP-style headers */
-            dt = dt.replace(/^data:application\/octet-stream/, 'data:application/octet-stream;headers=Content-Disposition: attachment; filename=foobar.png ');
+                let dt = outputCanvas.toDataURL('image/png');
+                /* Change MIME type to trick the browser to downlaod the file instead of displaying it */
+                dt = dt.replace(/^data:image\/[^;]*/, 'data:application/octet-stream');
+                /* In addition to <a>'s "download" attribute, you can define HTTP-style headers */
+                dt = dt.replace(/^data:application\/octet-stream/, 'data:application/octet-stream;headers=Content-Disposition: attachment; filename=foobar.png ');
 
-            let link = document.createElement('a');
-            link.href = dt;
-            link.download = this.state.filename;
-            link.click();
-        };
+                let link = document.createElement('a');
+                link.href = dt;
+                link.download = this.state.filename;
+                link.click();
+            };
+        }
+        setTimeout(func, 500);
+
     }
 
     render() {

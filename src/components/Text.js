@@ -23,7 +23,13 @@ class TextComponent extends Component {
         document.body.removeEventListener('mousemove', this.onMouseMove.bind(this));
     }
 
-    otherSelected () { // allow multiple text selection
+    otherSelected (text) { // allow multiple text selection
+        if (text === "NULL"){
+            this.selected = false;
+            this.forceUpdate();
+            return;
+        }
+
         if (!this.keyPressed[CONST.KEYCODE_ALT]){
             this.selected = false;
             this.forceUpdate();
@@ -134,7 +140,7 @@ class TextComponent extends Component {
 
     render () {
         let [x, y] = this.state.pos;
-        console.log(this.state.style);
+
         return (
             <g transform={`rotate(${this.state.rotate} ${x}, ${y})`}>
                 <text x={x} y={y} alignmentBaseline="hanging" textAnchor={this.state.isVertical?'start':'middle'}

@@ -41,7 +41,9 @@ class TextEditorComponent extends Component {
     }
 
     selectText (text) {
-        if (text != null) {
+        if (text === "NULL") {
+            this.hidden = true;
+        } else {
             if (this.keyPressed[CONST.KEYCODE_ALT]) {
                 this.multipleSelected = true;
             } else {
@@ -52,8 +54,7 @@ class TextEditorComponent extends Component {
                 this.multipleSelected = false;
             }
             this.hidden = false;
-        } else {
-            this.hidden = true;
+
         }
 
         this.forceUpdate();
@@ -74,6 +75,9 @@ class TextEditorComponent extends Component {
         }
     }
 
+    closeWindow( ) {
+        this.proxy.trigger("SelectText", "NULL");
+    }
 
     render() {
         return (
@@ -127,8 +131,8 @@ class TextEditorComponent extends Component {
                             state={this.state.editorState}/>
                 </div>
 
-                <div className="item" style={{textAlign: "center"}}>
-                    <button>Close</button>
+                <div className="item">
+                    <button onClick={this.closeWindow.bind(this)}>Close</button>
                 </div>
             </div>
         )
