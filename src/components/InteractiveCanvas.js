@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import TextComponent from './Text'
 import TextEditorComponent from './TextEditor'
 
-import {Project, Page, Rect, Text, EventProxy} from '../utils'
+import {Project, Page, Rect, Text, EventProxy, pageToImage} from '../utils'
 
 import CONST from '../constants';
 const DemoImage = require("../testimg.jpeg");
@@ -177,42 +177,23 @@ class InteractiveCanvasComponent extends Component {
     }
 
     saveSvgSrc () {
+        this.project.proxy.trigger("SelectText", "NULL");
         this.state.svgSrc = this.getSvgSrc();
     }
 
     exportSingleImage () {
-        this.project.proxy.trigger("SelectText", "NULL");
+        this.saveSvgSrc();
+        let downImage = (dataUrl)=>{
+            dataUrl = dataUrl.replace(/^data:image\/[^;]*/, 'data:application/octet-stream');
+            dataUrl = dataUrl.replace(/^data:application\/octet-stream/, 'data:application/octet-stream;headers=Content-Disposition: attachment; filename=foobar.png ');
 
-        let func = () => {
-            let outputCanvas = document.createElement("canvas");
-            let outputCtx = outputCanvas.getContext("2d");
+            let link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = this.state.filename;
+            link.click();
 
-            outputCanvas.width = this.state.image.width;
-            outputCanvas.height = this.state.image.height;
-
-
-            let svgImage = new Image();
-            svgImage.src = this.getSvgSrc();
-
-            svgImage.onload = ()=>{
-                outputCtx.drawImage(this.ctxes.base.canvas, 0, 0);
-                outputCtx.drawImage(this.ctxes.rect.canvas, 0, 0);
-                outputCtx.drawImage(svgImage, 0, 0);
-
-                let dt = outputCanvas.toDataURL('image/png');
-                /* Change MIME type to trick the browser to downlaod the file instead of displaying it */
-                dt = dt.replace(/^data:image\/[^;]*/, 'data:application/octet-stream');
-                /* In addition to <a>'s "download" attribute, you can define HTTP-style headers */
-                dt = dt.replace(/^data:application\/octet-stream/, 'data:application/octet-stream;headers=Content-Disposition: attachment; filename=foobar.png ');
-
-                let link = document.createElement('a');
-                link.href = dt;
-                link.download = this.state.filename;
-                link.click();
-            };
-        }
-        setTimeout(func, 500);
-
+        };
+        pageToImage(this.state, downImage);
     }
 
     render() {

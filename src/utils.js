@@ -4,7 +4,8 @@ export {
     Page,
     Text,
     Rect,
-    EventProxy
+    EventProxy,
+    pageToImage
 }
 
 class Project {
@@ -84,5 +85,24 @@ class EventProxy {
             this.events[event].map((callback)=>{return callback(msg);});
         }
 
+    }
+}
+
+function pageToImage(page, callback) {
+    let svgImage = new Image();
+    svgImage.src = page.svgSrc;
+
+    svgImage.onload = ()=> {
+        let canvas = document.createElement("canvas");
+        canvas.width = page.image.width;
+        canvas.height = page.image.height;
+
+        let ctx = canvas.getContext("2d");
+
+        ctx.drawImage(page.image, 0, 0);
+        page.rects.map((rect) => rect.renderOnContext(ctx));
+        ctx.drawImage(svgImage, 0, 0)
+
+        callback(canvas.toDataURL('image/png'));
     }
 }
