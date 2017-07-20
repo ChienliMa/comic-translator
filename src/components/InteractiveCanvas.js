@@ -178,6 +178,8 @@ class InteractiveCanvasComponent extends Component {
 
     saveSvgSrc () {
         this.project.proxy.trigger("SelectText", "NULL");
+        let lines = document.getElementsByTagName("line");
+        while (lines[0]) {lines[0].remove()}
         this.state.svgSrc = this.getSvgSrc();
     }
 

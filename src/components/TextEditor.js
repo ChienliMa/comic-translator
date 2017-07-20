@@ -54,7 +54,6 @@ class TextEditorComponent extends Component {
                 this.multipleSelected = false;
             }
             this.hidden = false;
-
         }
 
         this.forceUpdate();
