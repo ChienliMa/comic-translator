@@ -10,7 +10,7 @@ class ThumbnailComponent extends Component {
 
     onClick () {
         this.proxy.clearSubscribes("UpdateText");
-        this.proxy.trigger("SelectText",null);
+        this.proxy.trigger("SelectText", "NULL");
         this.proxy.trigger("SelectImg", this.page);
     }
 

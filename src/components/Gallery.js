@@ -3,7 +3,7 @@ import ThumbnailComponent from './Thumbnail'
 import * as JSZip from 'jszip';
 import  * as FileSaver from 'file-saver';
 
-import {Page} from '../utils';
+import {Page, pageToImage} from '../utils';
 
 
 
@@ -41,25 +41,10 @@ class GalleryComponent extends Component {
         var zip = new JSZip();
         var img = zip.folder("images");
         let countDown = this.project.pages.length;
-        for (let page of this.project.pages) {
-            let svgImage = new Image();
-            svgImage.src = page.svgSrc;
 
-            svgImage.onload = ()=>{
-                let outputCanvas = document.createElement("canvas");
-                outputCanvas.width = page.image.width;
-                outputCanvas.height = page.image.height;
-
-                let outputCtx = outputCanvas.getContext("2d");
-
-                outputCtx.drawImage(page.image, 0, 0);
-                page.rects.map((rect)=>rect.renderOnContext(outputCtx));
-                outputCtx.drawImage(svgImage, 0, 0)
-
-                let savable = new Image();
-                savable.src = outputCanvas.toDataURL();
-                img.file(page.filename, savable.src.substr(savable.src.indexOf(',')+1), {base64: true});
-
+        let downloadImages = (page) =>{
+            return (dataUrl)=>{
+                img.file(page.filename, dataUrl.substr(dataUrl.indexOf(',')+1), {base64: true});
                 countDown  = countDown - 1;
                 if (countDown === 0) {
                     zip.generateAsync({type:"blob"})
@@ -68,6 +53,9 @@ class GalleryComponent extends Component {
                         });
                 }
             }
+        }
+        for (let page of this.project.pages) {
+            pageToImage(page, downloadImages(page));
         }
     }
 
