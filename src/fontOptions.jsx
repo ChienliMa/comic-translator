@@ -24,5 +24,5 @@ module.exports = function(props) {return [{value:'华康POP2体繁W9', label:'�
 {value:'華康流隸t', label:'華康流隸t'},
 {value:'華康流隸體', label:'華康流隸體'},
 {value:'華康特粗圓體', label:'華康特粗圓體'},
-{value:'華康粗圓體', label:'華康粗圓體'},
+{value:'華康粗圓體', label:'華康粗圓體'}
 ];};

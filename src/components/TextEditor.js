@@ -6,7 +6,8 @@ import 'react-select/dist/react-select.css';
 import {Text} from '../utils';
 import CONST from '../constants';
 
-let getFontOptions = require('../fontOptions.jsx');
+let getNativeOptions = require('../fontOptions.jsx');
+const UPLOAD_TAG = '上传/upload';
 
 class TextEditorComponent extends Component {
     constructor (props) {
@@ -78,6 +79,26 @@ class TextEditorComponent extends Component {
         this.proxy.trigger("SelectText", "NULL");
     }
 
+    optionOnClick (value) {
+        value === UPLOAD_TAG ? this.uploadFont(): this.update({style:value});
+    }
+
+    uploadFont () {
+        let input = document.createElement('input');
+        input.type = 'file';
+        input.click();
+    }
+
+    getFontOptions() {
+        return getNativeOptions() + this.getUploadedOptions();
+    }
+
+    getUploadedOptions() {
+        //1.get session
+        //2.query
+        //3.return
+    }
+
     render() {
         return (
             <div className="text-controller" style={{visibility:this.hidden?"hidden":"visible"}}>
@@ -87,8 +108,8 @@ class TextEditorComponent extends Component {
                         <Select
                             name="ffont"
                             value={this.state.text.style}
-                            options={getFontOptions()}
-                            onChange={(value)=>this.update({style:value.value})}
+                            options={this.getFontOptions().concat([{value:UPLOAD_TAG, label:UPLOAD_TAG}])}
+                            onChange={(value)=>{this.optionOnClick(value.value)}}
                         />
                     </div>
 
